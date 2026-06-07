@@ -33,7 +33,7 @@
           "only-arches": [
             "x86_64"
           ],
-          "url": "https://github.com/popcorn-official/popcorn-desktop/releases/download/v0.5.1/Popcorn-Time-0.5.1-linux64-0.44.5.zip",
+          "url": "https://github.com/fastrizwaan/popcorntime-flatpak/releases/download/0.51/Popcorn-Time-0.5.1-linux64-0.44.5.zip",
           "sha256": "c5a24bd693dbdbc66fa924e0f0b8d7377173112c9c9fed590a44bca59d2d111b"
         },
         {
