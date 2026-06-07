@@ -3,7 +3,20 @@ PopcornTime Flatpak package (unoffical) version: 0.51 with freedesktop 24.08
 cloned from https://gitlab.com/Preisschild/popcorntime-flatpak
 
 ![Screenshot](https://github.com/fastrizwaan/popcorntime-flatpak/releases/download/0.51/Screenshot.From.2026-06-07.12-05-52.png)
-## Install To System
+## Install
+
+[**Download and open with GNOME Software**](https://github.com/fastrizwaan/popcorntime-flatpak/releases/download/0.51/org.popcorntime.PopcornTime.flatpak)
+
+Or manually via CLI (copy and paste in a terminal):
+
+```bash
+flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+flatpak --user install flathub org.gnome.Platform//50
+wget -c https://github.com/fastrizwaan/popcorntime-flatpak/releases/download/0.51/org.popcorntime.PopcornTime.flatpak
+flatpak install --user org.popcorntime.PopcornTime.flatpak
+```
+
+## Build from Source
 
 1 - Install [Flatpak](https://flatpak.org/setup/) & flatpak-builder
 
