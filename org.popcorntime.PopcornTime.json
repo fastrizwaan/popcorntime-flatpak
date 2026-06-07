@@ -1,10 +1,10 @@
 {
   "app-id": "org.popcorntime.PopcornTime",
   "runtime": "org.gnome.Platform",
-  "runtime-version": "47",
+  "runtime-version": "50",
   "sdk": "org.gnome.Sdk",
   "base": "org.electronjs.Electron2.BaseApp",
-  "base-version": "24.08",
+  "base-version": "25.08",
   "command": "popcorntime-wrapper",
   "separate-locales": false,
   "finish-args": [
