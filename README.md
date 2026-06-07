@@ -1,6 +1,6 @@
 # PopcornTime-flatpak
-PopcornTime Flatpak package (unoffical) version: 0.51 with freedesktop 24.08
-cloned from https://gitlab.com/Preisschild/popcorntime-flatpak
+PopcornTime Flatpak package (unoffical) version: 0.51 with freedesktop 25.08
+
 
 ![Screenshot](https://github.com/fastrizwaan/popcorntime-flatpak/releases/download/0.51/Screenshot.From.2026-06-07.12-05-52.png)
 ## Install
@@ -11,7 +11,7 @@ Or manually via CLI (copy and paste in a terminal):
 
 ```bash
 flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-flatpak --user install flathub org.gnome.Platform//50
+flatpak --user install flathub org.gnome.Platform//50 org.electronjs.Electron2.BaseApp//25.08
 wget -c https://github.com/fastrizwaan/popcorntime-flatpak/releases/download/0.51/org.popcorntime.PopcornTime.flatpak
 flatpak install --user org.popcorntime.PopcornTime.flatpak
 ```
@@ -55,3 +55,6 @@ flatpak --user install popcorn-time-repo org.popcorntime.PopcornTime
 ```
 flatpak build-bundle ~/.local/share/flatpak/repo org.popcorntime.PopcornTime.flatpak org.popcorntime.PopcornTime
 ```
+
+
+cloned from https://gitlab.com/Preisschild/popcorntime-flatpak
