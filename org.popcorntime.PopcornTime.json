@@ -51,6 +51,11 @@
       "build-commands": [
         "install -d /app/popcorntime",
         "unzip Popcorn-Time-0.5.1-linux64-0.44.5.zip -d /app/popcorntime",
+        "sed -i \"s|Settings.customMoviesServer = '';|Settings.customMoviesServer = 'https://fusme.link/,https://jfper.link/,https://uxert.link/,https://yrkde.link/';|g\" /app/popcorntime/src/app/settings.js",
+        "sed -i \"s|Settings.customSeriesServer = '';|Settings.customSeriesServer = 'https://fusme.link/,https://jfper.link/,https://uxert.link/,https://yrkde.link/';|g\" /app/popcorntime/src/app/settings.js",
+        "sed -i \"s|Settings.customAnimeServer = '';|Settings.customAnimeServer = 'https://fusme.link/,https://jfper.link/,https://uxert.link/,https://yrkde.link/';|g\" /app/popcorntime/src/app/settings.js",
+        "sed -i \"s|Settings.dhtEnable = '';|Settings.dhtEnable = false;|g\" /app/popcorntime/src/app/settings.js",
+        "sed -i \"s|Settings.updateNotification = '';|Settings.updateNotification = false;|g\" /app/popcorntime/src/app/settings.js",
         "install popcorntime-wrapper /app/bin/",
         "install -d /app/share/icons/hicolor/256x256/apps/",
         "install /app/popcorntime/src/app/images/icon.png /app/share/icons/hicolor/256x256/apps/org.popcorntime.PopcornTime.png",
