@@ -46,11 +46,21 @@
           "commands": [
             "exec /app/popcorntime/Popcorn-Time --enable-features=UseOzonePlatform --ozone-platform=wayland"
           ]
+        },
+        {
+          "type": "file",
+          "path": "torrentio.js"
+        },
+        {
+          "type": "file",
+          "path": "patch_providers.py"
         }
       ],
       "build-commands": [
         "install -d /app/popcorntime",
         "unzip Popcorn-Time-0.5.1-linux64-0.44.5.zip -d /app/popcorntime",
+        "install -Dp -m644 torrentio.js /app/popcorntime/src/app/butter-provider/torrentio.js",
+        "python3 patch_providers.py",
         "sed -i \"s|Settings.customMoviesServer = '';|Settings.customMoviesServer = 'https://fusme.link/,https://jfper.link/,https://uxert.link/,https://yrkde.link/';|g\" /app/popcorntime/src/app/settings.js",
         "sed -i \"s|Settings.customSeriesServer = '';|Settings.customSeriesServer = 'https://fusme.link/,https://jfper.link/,https://uxert.link/,https://yrkde.link/';|g\" /app/popcorntime/src/app/settings.js",
         "sed -i \"s|Settings.customAnimeServer = '';|Settings.customAnimeServer = 'https://fusme.link/,https://jfper.link/,https://uxert.link/,https://yrkde.link/';|g\" /app/popcorntime/src/app/settings.js",
