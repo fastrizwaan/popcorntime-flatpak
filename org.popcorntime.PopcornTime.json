@@ -380,6 +380,7 @@
         "sed -i \"s|Settings.customAnimeServer = '';|Settings.customAnimeServer = 'https://fusme.link/,https://jfper.link/,https://uxert.link/,https://yrkde.link/';|g\" /app/popcorntime/src/app/settings.js",
         "sed -i \"s|Settings.dhtEnable = '';|Settings.dhtEnable = false;|g\" /app/popcorntime/src/app/settings.js",
         "sed -i \"s|Settings.updateNotification = '';|Settings.updateNotification = false;|g\" /app/popcorntime/src/app/settings.js",
+        "sed -i \"s|Settings.chosenPlayer = 'local';|Settings.chosenPlayer = 'mpv';|g\" /app/popcorntime/src/app/settings.js",
         "sed -i \"s|path.join(os.tmpdir(), Settings.projectName)|'/var/tmp/' + Settings.projectName|g\" /app/popcorntime/src/app/settings.js",
         "sed -i \"s|process.env.PATH.split(path.delimiter).forEach(addPath);|process.env.PATH.split(path.delimiter).forEach(addPath); addPath('/app/bin');|g\" /app/popcorntime/src/app/lib/device/ext_player.js",
         "sed -i \"s|The video could not be loaded, either because the server or network failed or because the format is not supported.|Format not supported. Please select 'mpv' from the player menu below.|g\" /app/popcorntime/node_modules/video.js/dist/video-js/video.js",
