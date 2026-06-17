@@ -46,7 +46,13 @@ module.exports = async function getTorrentioStreams(type, imdb_id, season, episo
       const seeds = seedMatch ? parseInt(seedMatch[1], 10) : 0;
       const sizeStr = sizeMatch ? `${sizeMatch[1]} ${sizeMatch[2]}` : 'Unknown';
       
-      const quality = `Torrentio ${streamName}${sizeMatch ? ' ' + sizeStr : ''}`;
+      
+      let quality = '720p';
+      if (s.name.includes('1080p') || s.title.includes('1080p')) quality = '1080p';
+      else if (s.name.includes('720p') || s.title.includes('720p')) quality = '720p';
+      else if (s.name.includes('480p') || s.title.includes('480p')) quality = '480p';
+      else if (s.name.includes('2160p') || s.title.includes('2160p') || s.name.includes('4k') || s.name.includes('4K')) quality = '1080p'; // fallback 4k to 1080p bucket
+
       
       return {
         quality: quality,
@@ -57,7 +63,8 @@ module.exports = async function getTorrentioStreams(type, imdb_id, season, episo
         seed: seeds,
         peers: seeds, // Fallback to seeds if peers aren't explicitly provided
         size: 0, // Butter uses size_bytes but fallback to 0 is usually fine
-        filesize: sizeStr
+        filesize: sizeStr,
+        fileIndex: s.fileIdx
       };
     });
   } catch (error) {

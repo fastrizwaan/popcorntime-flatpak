@@ -15,12 +15,319 @@
     "--device=dri",
     "--socket=pulseaudio",
     "--filesystem=xdg-run/tmp:rw",
-    "--filesystem=/tmp/Popcorn Time:create",
+    "--filesystem=/var/tmp/Popcorn Time:create",
     "--talk-name=org.freedesktop.Notifications",
     "--own-name=com.nw-builder.popcorn-time",
-    "--own-name=org.mpris.MediaPlayer2.chromium.*"
+    "--own-name=org.mpris.MediaPlayer2.chromium.*",
+    "--talk-name=org.freedesktop.Flatpak",
+    "--env=TMPDIR=/var/tmp"
   ],
   "modules": [
+    {
+      "name": "yt-dlp",
+      "no-autogen": true,
+      "no-make-install": true,
+      "make-args": [
+        "yt-dlp",
+        "PYTHON=/usr/bin/python3"
+      ],
+      "post-install": [
+        "install yt-dlp /app/bin"
+      ],
+      "sources": [
+        {
+          "type": "archive",
+          "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.03.17/yt-dlp.tar.gz",
+          "sha256": "c74f56fc88a7f9b7c995646f30538974a03dd7609f55257b20594fdeeb1e13df",
+          "x-checker-data": {
+            "is-important": true,
+            "type": "json",
+            "url": "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest",
+            "version-query": ".tag_name",
+            "url-query": ".assets[] | select(.name==\"yt-dlp.tar.gz\") | .browser_download_url"
+          }
+        }
+      ]
+    },
+    {
+      "name": "libass",
+      "cleanup": [
+        "/include",
+        "/lib/pkgconfig"
+      ],
+      "config-opts": [
+        "--disable-static",
+        "--enable-asm",
+        "--enable-harfbuzz",
+        "--enable-fontconfig"
+      ],
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://github.com/libass/libass.git",
+          "tag": "0.17.4",
+          "commit": "bbb3c7f1570a4a021e52683f3fbdf74fe492ae84",
+          "x-checker-data": {
+            "type": "git",
+            "tag-pattern": "^(\\d\\.\\d{1,3}\\.\\d{1,2})$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "x264",
+      "cleanup": [
+        "/include",
+        "/lib/pkgconfig",
+        "/share/man"
+      ],
+      "config-opts": [
+        "--disable-cli",
+        "--enable-shared"
+      ],
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://github.com/mirror/x264.git",
+          "x-checker-data": {
+            "type": "json",
+            "url": "https://code.videolan.org/api/v4/projects/536/repository/branches/stable",
+            "commit-query": ".commit.id",
+            "version-query": ".commit.short_id",
+            "timestamp-query": ".commit.created_at"
+          },
+          "branch": "master"
+        }
+      ]
+    },
+    {
+      "name": "x265",
+      "buildsystem": "cmake",
+      "subdir": "source",
+      "config-opts": [
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DBUILD_STATIC=0",
+        "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+      ],
+      "cleanup": [
+        "/include",
+        "/lib/pkgconfig",
+        "/share/man"
+      ],
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://bitbucket.org/multicoreware/x265_git.git",
+          "tag": "4.1",
+          "commit": "1d117bed4747758b51bd2c124d738527e30392cb",
+          "x-checker-data": {
+            "type": "git",
+            "tag-pattern": "^([\\d.]+)$"
+          }
+        },
+        {
+          "type": "patch",
+          "path": "patches/x265-cmake_policy.patch"
+        }
+      ]
+    },
+    {
+      "name": "ffmpeg",
+      "cleanup": [
+        "/include",
+        "/lib/pkgconfig",
+        "/share/ffmpeg/examples"
+      ],
+      "config-opts": [
+        "--disable-debug",
+        "--disable-doc",
+        "--disable-static",
+        "--enable-gnutls",
+        "--enable-gpl",
+        "--enable-shared",
+        "--enable-version3",
+        "--enable-libass",
+        "--enable-libx264",
+        "--enable-libx265",
+        "--enable-libdrm",
+        "--enable-vaapi"
+      ],
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://github.com/FFmpeg/FFmpeg.git",
+          "commit": "9047fa1b084f76b1b4d065af2d743df1b40dfb56",
+          "tag": "n8.1",
+          "x-checker-data": {
+            "type": "git",
+            "tag-pattern": "^n([\\d.]{3,7})$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "libplacebo",
+      "buildsystem": "meson",
+      "config-opts": [
+        "-Dvulkan=disabled",
+        "-Dshaderc=disabled",
+        "-Dglslang=disabled",
+        "-Ddemos=false"
+      ],
+      "cleanup": [
+        "/include",
+        "/lib/pkgconfig"
+      ],
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://github.com/haasn/libplacebo.git",
+          "tag": "v7.360.1",
+          "commit": "cee9b076f2c63104ccfd497fa79c39a867293ec4"
+        }
+      ]
+    },
+    {
+      "name": "libXpresent",
+      "buildsystem": "autotools",
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://gitlab.freedesktop.org/xorg/lib/libxpresent.git",
+          "tag": "libXpresent-1.0.2",
+          "commit": "4d92149372461bf575e8a09b1064a2884c38c3aa",
+          "x-checker-data": {
+            "type": "git",
+            "tag-pattern": "^libXpresent-([\\d.]+)$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "luajit",
+      "no-autogen": true,
+      "cleanup": [
+        "/bin",
+        "/include",
+        "/lib/pkgconfig",
+        "/share/man"
+      ],
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://github.com/LuaJIT/LuaJIT.git",
+          "disable-shallow-clone": true,
+          "commit": "659a61693aa3b87661864ad0f12eee14c865cd7f",
+          "x-checker-data": {
+            "type": "json",
+            "url": "https://api.github.com/repos/LuaJIT/LuaJIT/branches/v2.1",
+            "commit-query": ".commit.sha",
+            "version-query": ".commit.sha",
+            "timestamp-query": ".commit.commit.committer.date"
+          }
+        },
+        {
+          "type": "shell",
+          "commands": [
+            "sed -i 's|/usr/local|/app|' ./Makefile"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mpv",
+      "buildsystem": "meson",
+      "config-opts": [
+        "-Dalsa=enabled",
+        "-Dbuild-date=false",
+        "-Dcplayer=true",
+        "-Ddrm=disabled",
+        "-Degl-drm=disabled",
+        "-Degl-wayland=enabled",
+        "-Degl-x11=enabled",
+        "-Degl=enabled",
+        "-Dgbm=disabled",
+        "-Dgl-x11=enabled",
+        "-Dgl=enabled",
+        "-Diconv=enabled",
+        "-Dlibmpv=true",
+        "-Dpulse=enabled",
+        "-Duchardet=disabled",
+        "-Dvaapi-drm=disabled",
+        "-Dvaapi-wayland=enabled",
+        "-Dvaapi-x11=enabled",
+        "-Dvaapi=enabled",
+        "-Dvapoursynth=disabled",
+        "-Dvdpau-gl-x11=enabled",
+        "-Dvdpau=enabled",
+        "-Dvulkan=disabled",
+        "-Dwayland=enabled",
+        "-Dwerror=false",
+        "-Dx11=enabled",
+        "-Dxv=enabled",
+        "-Dzimg=disabled",
+        "-Dzlib=enabled",
+        "-Dlibarchive=disabled",
+        "-Dlcms2=disabled",
+        "-Djpeg=disabled",
+        "-Drubberband=disabled",
+        "-Ddvdnav=disabled",
+        "-Dcdda=disabled",
+        "-Dlibbluray=disabled"
+      ],
+      "post-install": [
+        "mv /app/bin/mpv /app/bin/mpv-bin",
+        "mkdir -p /app/etc/mpv",
+        "echo \"screenshot-directory=~/.var/app/org.popcorntime.PopcornTime/Pictures/mpv\" > /app/etc/mpv/mpv.conf",
+        "echo \"ytdl-format=22/bestvideo[vcodec^=avc1]+bestaudio/best\" >> /app/etc/mpv/mpv.conf",
+        "echo \"vo=gpu\" >> /app/etc/mpv/mpv.conf",
+        "echo \"hwdec=auto\" >> /app/etc/mpv/mpv.conf",
+        "echo \"force-window=immediate\" >> /app/etc/mpv/mpv.conf",
+        "echo \"fs=yes\" >> /app/etc/mpv/mpv.conf",
+        "sed  '/^X-KDE-Protocols/s/,smb//; /^X-KDE-Protocols/s/smb,//; /^X-KDE-Protocols/s/smb//; /^X-KDE-Protocols=$/d' -i /app/share/applications/mpv.desktop"
+      ],
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://github.com/mpv-player/mpv.git",
+          "tag": "v0.41.0",
+          "commit": "41f6a645068483470267271e1d09966ca3b9f413",
+          "x-checker-data": {
+            "type": "git",
+            "tag-pattern": "^v([\\d.]+)$",
+            "is-main-source": true
+          }
+        },
+        {
+          "type": "file",
+          "path": "io.mpv.Mpv.appdata.xml"
+        },
+        {
+          "type": "shell",
+          "commands": [
+            "if [ -f \"MPV_VERSION\" ]; then version=$(cat MPV_VERSION); else version=$(git describe --tags --abbrev=0); fi",
+            "sed -i \"s/date=\\\"[0-9-]*\\\"/date=\\\"$(git log -n1 --pretty=format:%ad --date=short)\\\"/\" io.mpv.Mpv.appdata.xml",
+            "sed -i \"s/version=\\\"[0-9.]*\\\"/version=\\\"$version\\\"/\" io.mpv.Mpv.appdata.xml",
+            "mkdir -p /app/share/appdata",
+            "mv io.mpv.Mpv.appdata.xml /app/share/appdata/io.mpv.Mpv.appdata.xml",
+            "chmod 644 /app/share/appdata/io.mpv.Mpv.appdata.xml"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mpv-wrapper",
+      "buildsystem": "simple",
+      "build-commands": [
+        "install -D mpv /app/bin/mpv"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "path": "mpv"
+        }
+      ]
+    },
     {
       "name": "popcorntime",
       "buildsystem": "simple",
@@ -65,6 +372,7 @@
         "install -d /app/popcorntime",
         "unzip Popcorn-Time-0.5.1-linux64-0.44.5.zip -d /app/popcorntime",
         "unzip -o 0.44.6-linux-x64.zip -d /app/popcorntime/lib/",
+        "sed -i '1i require(\"events\").EventEmitter.defaultMaxListeners = 0;' /app/popcorntime/src/app/app.js",
         "install -Dp -m644 torrentio.js /app/popcorntime/src/app/butter-provider/torrentio.js",
         "python3 patch_providers.py",
         "sed -i \"s|Settings.customMoviesServer = '';|Settings.customMoviesServer = 'https://fusme.link/,https://jfper.link/,https://uxert.link/,https://yrkde.link/';|g\" /app/popcorntime/src/app/settings.js",
@@ -72,6 +380,16 @@
         "sed -i \"s|Settings.customAnimeServer = '';|Settings.customAnimeServer = 'https://fusme.link/,https://jfper.link/,https://uxert.link/,https://yrkde.link/';|g\" /app/popcorntime/src/app/settings.js",
         "sed -i \"s|Settings.dhtEnable = '';|Settings.dhtEnable = false;|g\" /app/popcorntime/src/app/settings.js",
         "sed -i \"s|Settings.updateNotification = '';|Settings.updateNotification = false;|g\" /app/popcorntime/src/app/settings.js",
+        "sed -i \"s|path.join(os.tmpdir(), Settings.projectName)|'/var/tmp/' + Settings.projectName|g\" /app/popcorntime/src/app/settings.js",
+        "sed -i \"s|process.env.PATH.split(path.delimiter).forEach(addPath);|process.env.PATH.split(path.delimiter).forEach(addPath); addPath('/app/bin');|g\" /app/popcorntime/src/app/lib/device/ext_player.js",
+        "sed -i \"s|The video could not be loaded, either because the server or network failed or because the format is not supported.|Format not supported. Please select 'mpv' from the player menu below.|g\" /app/popcorntime/node_modules/video.js/dist/video-js/video.js",
+        "sed -i \"s|The video could not be loaded, either because the server or network failed or because the format is not supported.|Format not supported. Please select 'mpv' from the player menu below.|g\" /app/popcorntime/node_modules/video.js/dist/cdn/video.js",
+        "sed -i \"s|App.vent.trigger('stream:ready', trailer);|require('child_process').exec('\\\"/app/bin/mpv\\\" \\\"' + this.model.get('trailer') + '\\\"');|g\" /app/popcorntime/src/app/lib/views/play_control.js",
+        "sed -i \"s|if (!fileName) {|let overrideIdx = this.torrentModel ? this.torrentModel.get('fileIndex') : undefined; if (overrideIdx !== undefined \\&\\& torrent.files[overrideIdx]) { fileName = torrent.files[overrideIdx].path; } if (!fileName) {|g\" /app/popcorntime/src/app/streamer.js",
+        "sed -i \"s|device: App.Device.Collection.selected|device: App.Device.Collection.selected, fileIndex: torrent.fileIndex !== undefined ? parseInt(torrent.fileIndex) : undefined|g\" /app/popcorntime/src/app/lib/views/torrent_list.js",
+        "sed -i \"s|startStreaming.attr('data-quality', key);|startStreaming.attr('data-quality', key); startStreaming.attr('data-fileindex', torrent.fileIndex !== undefined ? torrent.fileIndex : '');|g\" /app/popcorntime/src/app/lib/views/show_detail.js",
+        "sed -i \"s|var episode_id = \\$(e.currentTarget).attr('data-episodeid');|var episode_id = \\$(e.currentTarget).attr('data-episodeid'); var file_index = \\$(e.currentTarget).attr('data-fileindex');|g\" /app/popcorntime/src/app/lib/views/show_detail.js",
+        "sed -i \"s|file_name: file_name,|file_name: file_name, fileIndex: file_index !== '' \\&\\& file_index !== undefined ? parseInt(file_index) : undefined,|g\" /app/popcorntime/src/app/lib/views/show_detail.js",
         "install popcorntime-wrapper /app/bin/",
         "install -d /app/share/icons/hicolor/256x256/apps/",
         "install /app/popcorntime/src/app/images/icon.png /app/share/icons/hicolor/256x256/apps/org.popcorntime.PopcornTime.png",
@@ -79,7 +397,10 @@
         "touch org.popcorntime.PopcornTime.desktop",
         "install -Dp -m644 org.popcorntime.PopcornTime.metainfo.xml /app/share/metainfo/org.popcorntime.PopcornTime.metainfo.xml",
         "install -m644 org.popcorntime.PopcornTime.desktop /app/share/applications/org.popcorntime.PopcornTime.desktop",
-        "desktop-file-edit --set-key=Exec --set-value='popcorntime-wrapper %U' --set-key=Icon --set-value='org.popcorntime.PopcornTime' --set-key=Comment --set-value='Watch Movies and TV Shows instantly' --set-key=Name --set-value='Popcorn-Time' --set-key=MimeType --set-value='application/x-bittorrent;x-scheme-handler/magnet;' --set-key=StartupNotify --set-value='false' --set-key=Categories --set-value='AudioVideo;Video;Player;' --set-key=Type --set-value='Application' /app/share/applications/org.popcorntime.PopcornTime.desktop"
+        "desktop-file-edit --set-key=Exec --set-value='popcorntime-wrapper %U' --set-key=Icon --set-value='org.popcorntime.PopcornTime' --set-key=Comment --set-value='Watch Movies and TV Shows instantly' --set-key=Name --set-value='Popcorn-Time' --set-key=MimeType --set-value='application/x-bittorrent;x-scheme-handler/magnet;' --set-key=StartupNotify --set-value='false' --set-key=Categories --set-value='AudioVideo;Video;Player;' --set-key=Type --set-value='Application' /app/share/applications/org.popcorntime.PopcornTime.desktop",
+        "sed -i \"s|this.ui.showTorrents.show();|this.ui.showTorrents.show(); setTimeout(() => { if (!this.model.get('showTorrents')) { this.showAllTorrents(); } }, 500);|g\" /app/popcorntime/src/app/lib/views/play_control.js",
+        "sed -i \"s|this.ui.showTorrents.show();|this.ui.showTorrents.show(); setTimeout(() => { if (!this.model.get('showTorrents')) { this.showAllTorrents(); } }, 500);|g\" /app/popcorntime/src/app/lib/views/play_control.js",
+        "sed -i \"s|this.model.set('showTorrents', false);|this.model.set('showTorrents', false); setTimeout(() => { jQuery('.show-all-torrents').click(); }, 500);|g\" /app/popcorntime/src/app/lib/views/show_detail.js"
       ]
     }
   ]
