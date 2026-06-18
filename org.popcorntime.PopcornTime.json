@@ -19,7 +19,6 @@
     "--talk-name=org.freedesktop.Notifications",
     "--own-name=com.nw-builder.popcorn-time",
     "--own-name=org.mpris.MediaPlayer2.chromium.*",
-    "--talk-name=org.freedesktop.Flatpak",
     "--env=TMPDIR=/var/tmp"
   ],
   "modules": [
