@@ -431,7 +431,7 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         
         self.current_media_type = "movie"
         self.current_genre = "All"
-        self.current_catalog_id = "top"
+        self.current_catalog_id = "trending"
         self.current_query = ""
         self.current_page = 1
         self.is_fetching = False
@@ -494,7 +494,7 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         self.genre_dropdown.connect("notify::selected", self.on_genre_changed)
         header_controls.append(self.genre_dropdown)
         
-        self.sort_dropdown = Gtk.DropDown.new_from_strings(["Popular", "By Rating"])
+        self.sort_dropdown = Gtk.DropDown.new_from_strings(["Trending", "Popularity", "Last Added", "Year", "Title", "Rating"])
         self.sort_dropdown.set_valign(Gtk.Align.CENTER)
         self.sort_dropdown.connect("notify::selected", self.on_sort_changed)
         header_controls.append(self.sort_dropdown)
@@ -539,7 +539,7 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         
         self.current_media_type = media_type
         self.current_genre = genre
-        self.current_catalog_id = "top"
+        self.current_catalog_id = "trending"
         self.sort_dropdown.set_selected(0)
         
         # Reset genre dropdown
@@ -559,10 +559,9 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         
     def on_sort_changed(self, dropdown, *args):
         idx = dropdown.get_selected()
-        if idx == 0:
-            self.current_catalog_id = "top"
-        elif idx == 1:
-            self.current_catalog_id = "imdbRating"
+        sort_map = ["trending", "popularity", "last added", "year", "title", "rating"]
+        if idx != Gtk.INVALID_LIST_POSITION:
+            self.current_catalog_id = sort_map[idx]
         self.load_movies()
         
     def on_scroll(self, adj):

@@ -44,38 +44,66 @@ def _get_cached_request(url, max_age_hours=12):
                 pass
     return None
 
-def fetch_items(media_type="movie", query="", genre="", catalog_id="top", limit=50, page=1):
-    base_url = f"https://v3-cinemeta.strem.io/catalog/{media_type}/{catalog_id}"
-    
-    skip = (page - 1) * limit
-    skip_str = f"skip={skip}" if skip > 0 else ""
-    
-    if query:
-        extra = f"search={urllib.parse.quote(query)}"
-        if skip_str: extra += f"&{skip_str}"
-        url = f"{base_url}/{extra}.json"
-    elif genre and genre != "All":
-        extra = f"genre={urllib.parse.quote(genre)}"
-        if skip_str: extra += f"&{skip_str}"
-        url = f"{base_url}/{extra}.json"
+def fetch_items(media_type="movie", query="", genre="", catalog_id="trending", limit=50, page=1):
+    if catalog_id in ["trending", "popularity", "rating"]:
+        cid = "imdbRating" if catalog_id == "rating" else "top"
+        base_url = f"https://v3-cinemeta.strem.io/catalog/{media_type}/{cid}"
+        
+        skip = (page - 1) * limit
+        skip_str = f"skip={skip}" if skip > 0 else ""
+        
+        if query:
+            extra = f"search={urllib.parse.quote(query)}"
+            if skip_str: extra += f"&{skip_str}"
+            url = f"{base_url}/{extra}.json"
+        elif genre and genre != "All":
+            extra = f"genre={urllib.parse.quote(genre)}"
+            if skip_str: extra += f"&{skip_str}"
+            url = f"{base_url}/{extra}.json"
+        else:
+            url = f"{base_url}/{skip_str}.json" if skip_str else f"{base_url}.json"
+            
+        data = _get_cached_request(url, max_age_hours=12)
+        if not data:
+            return []
+            
+        metas = data.get("metas", [])
+        movies = []
+        for m in metas:
+            movies.append({
+                "id": m.get("id"),
+                "title": m.get("name"),
+                "year": m.get("releaseInfo", m.get("year", "")),
+                "medium_cover_image": m.get("poster"),
+                "type": media_type
+            })
+        return movies
     else:
-        url = f"{base_url}/{skip_str}.json" if skip_str else f"{base_url}.json"
+        # Fallback to Popcorn API (fusme.link) for Year, Title, Last Added
+        endpoint = "movies" if media_type == "movie" else "shows"
+        url = f"https://fusme.link/{endpoint}/{page}?sort={urllib.parse.quote(catalog_id)}&order=-1"
+        if genre and genre != "All":
+            url += f"&genre={urllib.parse.quote(genre.lower())}"
+        if query:
+            url += f"&keywords={urllib.parse.quote(query)}"
+            
+        data = _get_cached_request(url, max_age_hours=12)
+        if not data: return []
         
-    data = _get_cached_request(url, max_age_hours=12)
-    if not data:
-        return []
-        
-    metas = data.get("metas", [])
-    movies = []
-    for m in metas:
-        movies.append({
-            "id": m.get("id"),
-            "title": m.get("name"),
-            "year": m.get("releaseInfo", m.get("year", "")),
-            "medium_cover_image": m.get("poster"),
-            "type": media_type
-        })
-    return movies
+        items = data if isinstance(data, list) else data.get("results", [])
+        movies = []
+        for m in items:
+            imdb_id = m.get("imdb_id") or m.get("imdb") or m.get("id")
+            images = m.get("images", {})
+            poster = images.get("poster") or images.get("fanart") or ""
+            movies.append({
+                "id": imdb_id,
+                "title": m.get("title"),
+                "year": m.get("year", ""),
+                "medium_cover_image": poster,
+                "type": media_type
+            })
+        return movies
 
 def fetch_movie_details(imdb_id, media_type="movie"):
     url = f"https://v3-cinemeta.strem.io/meta/{media_type}/{imdb_id}.json"
