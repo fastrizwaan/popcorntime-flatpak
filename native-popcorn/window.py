@@ -482,7 +482,13 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         # Header controls
         header_controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         
-        self.genre_dropdown = Gtk.DropDown.new_from_strings(["All", "Action", "Animation", "Comedy", "Sci-Fi"])
+        genres = [
+            "All", "Action", "Adventure", "Animation", "Biography", "Comedy", 
+            "Crime", "Documentary", "Drama", "Family", "Fantasy", "History", 
+            "Horror", "Music", "Musical", "Mystery", "Romance", "Sci-Fi", 
+            "Sport", "Thriller", "War", "Western"
+        ]
+        self.genre_dropdown = Gtk.DropDown.new_from_strings(genres)
         self.genre_dropdown.set_valign(Gtk.Align.CENTER)
         self.genre_dropdown.connect("notify::selected", self.on_genre_changed)
         header_controls.append(self.genre_dropdown)
