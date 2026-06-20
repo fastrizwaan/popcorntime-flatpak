@@ -1,0 +1,76 @@
+{
+  "app-id": "org.popcorntime.NativePopcorn",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "50",
+  "sdk": "org.gnome.Sdk",
+  "command": "native-popcorn",
+  "finish-args": [
+    "--share=ipc",
+    "--share=network",
+    "--socket=x11",
+    "--socket=wayland",
+    "--device=dri",
+    "--filesystem=xdg-run/tmp:rw",
+    "--filesystem=/var/tmp:rw",
+    "--talk-name=org.freedesktop.Flatpak"
+  ],
+  "modules": [
+    {
+      "name": "nodejs",
+      "buildsystem": "simple",
+      "build-commands": [
+        "cp -r * /app/"
+      ],
+      "sources": [
+        {
+          "type": "archive",
+          "url": "https://nodejs.org/dist/v20.11.1/node-v20.11.1-linux-x64.tar.xz",
+          "sha256": "d8dab549b09672b03356aa2257699f3de3b58c96e74eb26a8b495fbdc9cf6fbe"
+        }
+      ]
+    },
+    {
+      "name": "native-popcorn",
+      "buildsystem": "simple",
+      "build-commands": [
+        "install -d /app/native-popcorn",
+        "install main.py window.py player.py api.py /app/native-popcorn/",
+        "install native-popcorn /app/bin/",
+        "install mpv /app/bin/"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "path": "main.py"
+        },
+        {
+          "type": "file",
+          "path": "window.py"
+        },
+        {
+          "type": "file",
+          "path": "player.py"
+        },
+        {
+          "type": "file",
+          "path": "api.py"
+        },
+        {
+          "type": "script",
+          "dest-filename": "mpv",
+          "commands": [
+            "exec flatpak-spawn --host flatpak run io.mpv.Mpv \"$@\""
+          ]
+        },
+        {
+          "type": "script",
+          "dest-filename": "native-popcorn",
+          "commands": [
+            "export PATH=\"/app/bin:$PATH\"",
+            "exec python3 /app/native-popcorn/main.py \"$@\""
+          ]
+        }
+      ]
+    }
+  ]
+}
