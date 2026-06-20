@@ -52,11 +52,11 @@ def fetch_items(media_type="movie", query="", genre="", catalog_id="top", limit=
     
     if query:
         extra = f"search={urllib.parse.quote(query)}"
-        if skip_str: extra += f"%26{skip_str}"
+        if skip_str: extra += f"&{skip_str}"
         url = f"{base_url}/{extra}.json"
     elif genre and genre != "All":
         extra = f"genre={urllib.parse.quote(genre)}"
-        if skip_str: extra += f"%26{skip_str}"
+        if skip_str: extra += f"&{skip_str}"
         url = f"{base_url}/{extra}.json"
     else:
         url = f"{base_url}/{skip_str}.json" if skip_str else f"{base_url}.json"
