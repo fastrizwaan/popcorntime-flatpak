@@ -307,8 +307,32 @@ def patch_show_detail():
     with open(path, 'w') as f:
         f.write(content)
 
+def patch_filters():
+    for f in ['movie.js', 'tv.js', 'yts.js']:
+        path = f'/app/popcorntime/src/app/butter-provider/{f}'
+        try:
+            with open(path, 'r') as file:
+                content = file.read()
+            
+            old1 = "    if (filters.genre) {\n      params.genre = filters.genre;\n    }"
+            new1 = "    if (filters.genre && filters.genre !== 'All') {\n      params.genre = filters.genre.toLowerCase();\n    }"
+            
+            old2 = "    if (filters.genre && filters.genre !== 'All') {\n      params.genre = filters.genre;\n    }"
+            new2 = "    if (filters.genre && filters.genre !== 'All') {\n      params.genre = filters.genre.toLowerCase();\n    }"
+        
+            old3 = " + new URLSearchParams(params);"
+            new3 = " + new URLSearchParams(params).toString().replace(/\\+/g, '%20');"
+            
+            content = content.replace(old1, new1).replace(old2, new2).replace(old3, new3)
+            with open(path, 'w') as file:
+                file.write(content)
+        except Exception as e:
+            pass
+
 if __name__ == "__main__":
     patch_movie()
     patch_yts()
     patch_tv()
     patch_show_detail()
+    patch_filters()
+
