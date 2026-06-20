@@ -431,6 +431,7 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         
         self.current_media_type = "movie"
         self.current_genre = "All"
+        self.current_catalog_id = "top"
         self.current_query = ""
         self.current_page = 1
         self.is_fetching = False
@@ -493,10 +494,10 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         self.genre_dropdown.connect("notify::selected", self.on_genre_changed)
         header_controls.append(self.genre_dropdown)
         
-        sort_dropdown = Gtk.DropDown.new_from_strings(["Trending", "Popular", "Year", "Rating"])
-        sort_dropdown.set_valign(Gtk.Align.CENTER)
-        sort_dropdown.set_sensitive(False) # Not supported by Cinemeta natively
-        header_controls.append(sort_dropdown)
+        self.sort_dropdown = Gtk.DropDown.new_from_strings(["Popular", "By Rating"])
+        self.sort_dropdown.set_valign(Gtk.Align.CENTER)
+        self.sort_dropdown.connect("notify::selected", self.on_sort_changed)
+        header_controls.append(self.sort_dropdown)
         
         header.pack_start(header_controls)
         
@@ -538,6 +539,8 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         
         self.current_media_type = media_type
         self.current_genre = genre
+        self.current_catalog_id = "top"
+        self.sort_dropdown.set_selected(0)
         
         # Reset genre dropdown
         if genre == "Animation":
@@ -552,6 +555,14 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         if idx == Gtk.INVALID_LIST_POSITION: return
         item = dropdown.get_model().get_string(idx)
         self.current_genre = item
+        self.load_movies()
+        
+    def on_sort_changed(self, dropdown, *args):
+        idx = dropdown.get_selected()
+        if idx == 0:
+            self.current_catalog_id = "top"
+        elif idx == 1:
+            self.current_catalog_id = "imdbRating"
         self.load_movies()
         
     def on_scroll(self, adj):
@@ -573,7 +584,7 @@ class NativePopcornWindow(Adw.ApplicationWindow):
                 self.flowbox.remove(child)
                 
         def fetch():
-            movies = api.fetch_items(media_type=self.current_media_type, query=self.current_query, genre=self.current_genre, page=page)
+            movies = api.fetch_items(media_type=self.current_media_type, query=self.current_query, genre=self.current_genre, catalog_id=self.current_catalog_id, page=page)
             GLib.idle_add(self.populate_movies, movies, page)
             
         threading.Thread(target=fetch, daemon=True).start()

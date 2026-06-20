@@ -44,8 +44,8 @@ def _get_cached_request(url, max_age_hours=12):
                 pass
     return None
 
-def fetch_items(media_type="movie", query="", genre="", limit=50, page=1):
-    base_url = f"https://v3-cinemeta.strem.io/catalog/{media_type}/top"
+def fetch_items(media_type="movie", query="", genre="", catalog_id="top", limit=50, page=1):
+    base_url = f"https://v3-cinemeta.strem.io/catalog/{media_type}/{catalog_id}"
     
     skip = (page - 1) * limit
     skip_str = f"skip={skip}" if skip > 0 else ""
