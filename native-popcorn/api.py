@@ -5,7 +5,8 @@ import os
 import time
 import hashlib
 
-CACHE_DIR = os.path.expanduser('~/.cache/native-popcorn/api')
+cache_dir_base = os.environ.get('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
+CACHE_DIR = os.path.join(cache_dir_base, 'native-popcorn', 'api')
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 def _get_cached_request(url, max_age_hours=12):

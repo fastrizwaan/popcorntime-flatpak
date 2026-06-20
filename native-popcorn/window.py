@@ -12,7 +12,8 @@ import hashlib
 import api
 import player
 
-IMAGE_CACHE_DIR = os.path.expanduser('~/.cache/native-popcorn/images')
+cache_dir_base = os.environ.get('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
+IMAGE_CACHE_DIR = os.path.join(cache_dir_base, 'native-popcorn', 'images')
 os.makedirs(IMAGE_CACHE_DIR, exist_ok=True)
 
 def load_image_into_picture(url, picture_widget, width=None, height=None):
@@ -352,9 +353,9 @@ class MovieDetailsPage(Gtk.Overlay):
                 if status_data.get("status"):
                     self.dl_status.set_text(status_data["status"])
                     
-                if "downloaded" in status_data and "length" in status_data:
+                if "downloaded" in status_data and "totalLength" in status_data:
                     dl = status_data["downloaded"]
-                    tot = status_data["length"]
+                    tot = status_data["totalLength"]
                     if tot > 0:
                         frac = dl / tot
                         self.dl_progress.set_fraction(frac)
