@@ -76,9 +76,10 @@ class MovieDetailsPage(Gtk.Overlay):
         header = Adw.HeaderBar()
         header.set_show_end_title_buttons(False)
         header.set_show_start_title_buttons(False)
-        back_btn = Gtk.Button(icon_name="go-previous-symbolic")
-        back_btn.connect("clicked", lambda x: on_back())
-        header.pack_start(back_btn)
+        close_btn = Gtk.Button(icon_name="window-close-symbolic")
+        close_btn.set_css_classes(['circular', 'flat'])
+        close_btn.connect("clicked", lambda x: on_back())
+        header.pack_end(close_btn)
         header.add_css_class("flat")
         self.main_box.append(header)
         
@@ -216,17 +217,35 @@ class MovieDetailsPage(Gtk.Overlay):
         desc.set_margin_bottom(16)
         info_vbox.append(desc)
         
-        self.actions_hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        self.actions_hbox.set_margin_top(16)
+        # Row 1: Actions (Fav, Seen, Trailer)
+        self.row1_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        self.row1_box.set_margin_top(16)
         
-        self.watch_btn = Gtk.Button(label="WATCH IT NOW")
-        self.watch_btn.set_css_classes(['suggested-action', 'pill'])
-        self.watch_btn.set_size_request(150, 40)
-        self.watch_btn.connect("clicked", self.on_watch_clicked)
-        self.actions_hbox.append(self.watch_btn)
+        self.fav_btn = Gtk.Button(label="♡ Add to Favorites")
+        self.fav_btn.set_css_classes(['pill'])
+        self.row1_box.append(self.fav_btn)
         
-        self.quality_dropdown = Gtk.DropDown.new_from_strings([])
-        self.quality_dropdown.set_valign(Gtk.Align.CENTER)
+        self.seen_btn = Gtk.Button(label="👁 Not Seen")
+        self.seen_btn.set_css_classes(['pill'])
+        self.row1_box.append(self.seen_btn)
+        
+        trailer_btn = Gtk.Button()
+        trailer_icon = Gtk.Image.new_from_icon_name("media-playback-start-symbolic")
+        trailer_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        trailer_box.append(trailer_icon)
+        trailer_box.append(Gtk.Label(label="Watch Trailer"))
+        trailer_btn.set_child(trailer_box)
+        trailer_btn.set_css_classes(['pill'])
+        trailer_btn.set_valign(Gtk.Align.CENTER)
+        trailer_btn.connect("clicked", lambda x: self.on_trailer_clicked(details.get("trailer")))
+        if not details.get("trailer"): trailer_btn.set_sensitive(False)
+        self.row1_box.append(trailer_btn)
+        
+        info_vbox.append(self.row1_box)
+        
+        # Row 2: Series Selection (if applicable) & Qualities
+        self.row2_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        self.row2_box.set_margin_top(16)
         
         if self.media_type == "series" and details.get("videos"):
             videos = details.get("videos")
@@ -234,11 +253,11 @@ class MovieDetailsPage(Gtk.Overlay):
             
             self.season_dropdown = Gtk.DropDown.new_from_strings([f"Season {s}" for s in seasons])
             self.season_dropdown.set_valign(Gtk.Align.CENTER)
-            self.actions_hbox.append(self.season_dropdown)
+            self.row2_box.append(self.season_dropdown)
             
             self.episode_dropdown = Gtk.DropDown.new_from_strings([])
             self.episode_dropdown.set_valign(Gtk.Align.CENTER)
-            self.actions_hbox.append(self.episode_dropdown)
+            self.row2_box.append(self.episode_dropdown)
             
             def on_season_changed(dropdown, *args):
                 idx = dropdown.get_selected()
@@ -248,7 +267,7 @@ class MovieDetailsPage(Gtk.Overlay):
                 eps = [v for v in videos if v.get("season") == s]
                 eps.sort(key=lambda x: x.get("episode", 0))
                 self.current_episodes = eps
-                ep_strings = [f"Ep {e.get('episode')}: {e.get('title','')}" for e in eps]
+                ep_strings = [f"Ep {e.get('episode')}: {e.get('title') or e.get('name', '')}" for e in eps]
                 self.episode_dropdown.set_model(Gtk.StringList.new(ep_strings))
                 self.episode_dropdown.set_selected(0)
                 
@@ -262,26 +281,41 @@ class MovieDetailsPage(Gtk.Overlay):
                 
             self.episode_dropdown.connect("notify::selected", on_episode_changed)
             if seasons: on_season_changed(self.season_dropdown)
+            
+        self.quality_button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        self.quality_button_box.set_valign(Gtk.Align.CENTER)
+        self.row2_box.append(self.quality_button_box)
         
-        self.actions_hbox.append(self.quality_dropdown)
+        info_vbox.append(self.row2_box)
         
-        trailer_btn = Gtk.Button()
-        trailer_icon = Gtk.Image.new_from_icon_name("media-playback-start-symbolic")
-        trailer_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-        trailer_box.append(trailer_icon)
-        trailer_box.append(Gtk.Label(label="Trailer"))
-        trailer_btn.set_child(trailer_box)
-        trailer_btn.set_valign(Gtk.Align.CENTER)
-        trailer_btn.connect("clicked", lambda x: self.on_trailer_clicked(details.get("trailer")))
-        if not details.get("trailer"): trailer_btn.set_sensitive(False)
-        self.actions_hbox.append(trailer_btn)
+        # Row 3: Dropdown & Watch/Download
+        self.row3_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        self.row3_box.set_margin_top(12)
         
-        heart_btn = Gtk.Button(icon_name="emblem-favorite-symbolic")
-        heart_btn.set_valign(Gtk.Align.CENTER)
-        heart_btn.set_css_classes(['circular'])
-        self.actions_hbox.append(heart_btn)
+        self.file_dropdown = Gtk.DropDown.new_from_strings([])
+        self.file_dropdown.set_valign(Gtk.Align.CENTER)
         
-        info_vbox.append(self.actions_hbox)
+        def on_dropdown_changed(dropdown, pspec):
+            idx = dropdown.get_selected()
+            if hasattr(self, 'current_t_list') and idx != Gtk.INVALID_LIST_POSITION and idx < len(self.current_t_list):
+                self.selected_torrent = self.current_t_list[idx]
+                
+        self.file_dropdown.connect("notify::selected", on_dropdown_changed)
+        self.row3_box.append(self.file_dropdown)
+        
+        self.watch_btn = Gtk.Button(label="WATCH IT NOW")
+        self.watch_btn.set_css_classes(['suggested-action', 'pill'])
+        self.watch_btn.set_size_request(150, 40)
+        self.watch_btn.connect("clicked", self.on_watch_clicked)
+        self.row3_box.append(self.watch_btn)
+        
+        self.download_btn = Gtk.Button(label="Download")
+        self.download_btn.set_css_classes(['pill'])
+        self.download_btn.set_valign(Gtk.Align.CENTER)
+        self.download_btn.connect("clicked", self.on_download_clicked)
+        self.row3_box.append(self.download_btn)
+        
+        info_vbox.append(self.row3_box)
         info_vbox.append(self.progress_label)
         
         top_hbox.append(info_vbox)
@@ -292,9 +326,19 @@ class MovieDetailsPage(Gtk.Overlay):
             self.update_quality_dropdown()
             
     def fetch_torrents_async(self):
-        self.watch_btn.set_sensitive(False)
-        self.progress_label.set_text("Loading streams...")
-        self.quality_dropdown.set_model(Gtk.StringList.new(["Loading..."]))
+        if hasattr(self, 'watch_btn') and self.watch_btn:
+            self.watch_btn.set_sensitive(False)
+        if hasattr(self, 'download_btn') and self.download_btn:
+            self.download_btn.set_sensitive(False)
+        if hasattr(self, 'progress_label') and self.progress_label:
+            self.progress_label.set_text("Loading streams...")
+        
+        if hasattr(self, 'quality_button_box') and self.quality_button_box:
+            while child := self.quality_button_box.get_first_child():
+                self.quality_button_box.remove(child)
+        if hasattr(self, 'file_dropdown') and self.file_dropdown:
+            self.file_dropdown.set_model(Gtk.StringList.new(["Loading..."]))
+        
         def fetch():
             torrents = api.get_torrents(self.movie_stub.get("id"), self.media_type, self.selected_season, self.selected_episode)
             GLib.idle_add(self.on_torrents_fetched, torrents)
@@ -306,29 +350,80 @@ class MovieDetailsPage(Gtk.Overlay):
         self.update_quality_dropdown()
         
     def update_quality_dropdown(self):
+        while child := self.quality_button_box.get_first_child():
+            self.quality_button_box.remove(child)
+            
         if not self.torrents:
             self.watch_btn.set_sensitive(False)
-            self.quality_dropdown.set_model(Gtk.StringList.new(["No streams"]))
+            self.download_btn.set_sensitive(False)
+            self.file_dropdown.set_model(Gtk.StringList.new(["No streams"]))
             return
             
         self.watch_btn.set_sensitive(True)
-        qualities = [f"{t.get('quality', 'Unknown')} - {t.get('size', '')} (\U0001f464 {t.get('seeders', 0)} seeds)" for t in self.torrents]
-        self.quality_dropdown.set_model(Gtk.StringList.new(qualities))
-        self.quality_dropdown.set_selected(0)
+        self.download_btn.set_sensitive(True)
+        
+        quality_groups = {"4K": [], "2160p": [], "1080p": [], "720p": [], "More": []}
+        
+        for t in self.torrents:
+            q = t.get('quality', 'Unknown').upper()
+            if "4K" in q: quality_groups["4K"].append(t)
+            elif "2160" in q: quality_groups["2160p"].append(t)
+            elif "1080" in q: quality_groups["1080p"].append(t)
+            elif "720" in q: quality_groups["720p"].append(t)
+            else: quality_groups["More"].append(t)
+            
+        self.selected_torrent = None
+        self.quality_buttons = []
+        self.current_t_list = []
+        
+        def on_quality_btn_clicked(btn, t_list):
+            for b in self.quality_buttons:
+                b.set_css_classes(['pill'])
+            btn.set_css_classes(['pill', 'suggested-action'])
+            
+            self.current_t_list = t_list
+            self.selected_torrent = t_list[0]
+            strings = [f"{t.get('size', 'Unknown')} ({t.get('seeders', 0)} seeds)" for t in t_list]
+            self.file_dropdown.set_model(Gtk.StringList.new(strings))
+            self.file_dropdown.set_selected(0)
+            
+        first_btn = None
+        first_t_list = None
+        for q_label in ["4K", "2160p", "1080p", "720p", "More"]:
+            t_list = quality_groups[q_label]
+            if t_list:
+                btn = Gtk.Button(label=q_label)
+                btn.set_css_classes(['pill'])
+                btn.connect("clicked", on_quality_btn_clicked, t_list)
+                self.quality_buttons.append(btn)
+                self.quality_button_box.append(btn)
+                if not first_btn:
+                    first_btn = btn
+                    first_t_list = t_list
+                    
+        if first_btn:
+            on_quality_btn_clicked(first_btn, first_t_list)
+            
+    def on_download_clicked(self, btn):
+        if not hasattr(self, 'selected_torrent') or not self.selected_torrent:
+            return
+        magnet = self.selected_torrent.get("url") or self.selected_torrent.get("magnet")
+        if not magnet and self.selected_torrent.get("hash"):
+            magnet = api.build_magnet(self.selected_torrent.get("hash"), self.movie_stub.get("title", ""))
+        if magnet:
+            import subprocess
+            subprocess.Popen(['xdg-open', magnet])
         
     def on_watch_clicked(self, btn):
-        if not self.torrents:
-            self.progress_label.set_text("No streams available.")
+        if not hasattr(self, 'selected_torrent') or not self.selected_torrent:
+            if hasattr(self, 'progress_label') and self.progress_label:
+                self.progress_label.set_text("No streams available.")
             return
             
-        index = self.quality_dropdown.get_selected()
-        if index == Gtk.INVALID_LIST_POSITION:
-            index = 0
-            
-        if index < 0 or index >= len(self.torrents): return
-        
-        torrent = self.torrents[index]
-        magnet = api.build_magnet(torrent.get("hash"), self.movie_stub.get("title", ""))
+        torrent = self.selected_torrent
+        magnet = torrent.get("url") or torrent.get("magnet")
+        if not magnet and torrent.get("hash"):
+            magnet = api.build_magnet(torrent.get("hash"), self.movie_stub.get("title", ""))
         
         self.inner_stack.set_visible_child_name("download")
         self.watch_btn.set_sensitive(False)
@@ -410,7 +505,7 @@ class MovieWidget(Gtk.Box):
         # Match WineCharm icon view logic but make them slightly larger to fit ~15 per row
         self.set_size_request(130, 195)
         self.set_hexpand(True)
-        self.set_halign(Gtk.Align.FILL)
+        self.set_halign(Gtk.Align.CENTER)
         self.set_css_classes(['pt-card'])
         
         icon_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
@@ -437,8 +532,10 @@ class MovieWidget(Gtk.Box):
         gi.require_version('Pango', '1.0')
         from gi.repository import Pango
         title_label.set_ellipsize(Pango.EllipsizeMode.END)
-        title_label.set_max_width_chars(1) # Force minimum width request so grid can pack tight
-        title_label.set_halign(Gtk.Align.START)
+        title_label.set_max_width_chars(1)
+        title_label.set_hexpand(True)
+        title_label.set_halign(Gtk.Align.FILL)
+        title_label.set_xalign(0.0)
         title_label.set_css_classes(['pt-card-title'])
         self.append(title_label)
         
@@ -461,52 +558,53 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         self.current_page = 1
         self.is_fetching = False
 
-        main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.set_content(main_box)
+        toolbar_view = Adw.ToolbarView()
+        self.set_content(toolbar_view)
         
-        # Sidebar
-        sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        sidebar.set_css_classes(['sidebar'])
-        sidebar.set_size_request(200, -1)
+        # Topbar
+        topbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        topbar.set_css_classes(['topbar'])
         
-        logo_label = Gtk.Label(label="Popcorn Time")
-        logo_label.set_css_classes(['title-2'])
-        logo_label.set_margin_top(24)
-        logo_label.set_margin_bottom(24)
-        sidebar.append(logo_label)
+        # Left side
+        left_topbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         
         self.movies_btn = Gtk.Button(label="Movies")
-        self.movies_btn.set_css_classes(['sidebar-item', 'selected'])
+        self.movies_btn.set_css_classes(['topbar-item', 'selected'])
         self.movies_btn.connect("clicked", lambda x: self.switch_category("movie", "All", self.movies_btn))
-        sidebar.append(self.movies_btn)
+        left_topbar.append(self.movies_btn)
         
-        self.tv_btn = Gtk.Button(label="TV Shows")
-        self.tv_btn.set_css_classes(['sidebar-item'])
+        self.tv_btn = Gtk.Button(label="Series")
+        self.tv_btn.set_css_classes(['topbar-item'])
         self.tv_btn.connect("clicked", lambda x: self.switch_category("series", "All", self.tv_btn))
-        sidebar.append(self.tv_btn)
+        left_topbar.append(self.tv_btn)
         
         self.anime_btn = Gtk.Button(label="Anime")
-        self.anime_btn.set_css_classes(['sidebar-item'])
+        self.anime_btn.set_css_classes(['topbar-item'])
         self.anime_btn.connect("clicked", lambda x: self.switch_category("series", "Animation", self.anime_btn))
-        sidebar.append(self.anime_btn)
+        left_topbar.append(self.anime_btn)
         
-        main_box.append(sidebar)
+        self.fav_btn = Gtk.Button(label="Favorites")
+        self.fav_btn.set_css_classes(['topbar-item'])
+        left_topbar.append(self.fav_btn)
         
-        # Right Content Area (Stack)
-        self.stack = Gtk.Stack()
-        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
-        self.stack.set_hexpand(True)
-        main_box.append(self.stack)
+        self.watched_btn = Gtk.Button(label="Watched")
+        self.watched_btn.set_css_classes(['topbar-item'])
+        left_topbar.append(self.watched_btn)
         
-        # Grid Page
-        self.grid_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        topbar.append(left_topbar)
         
-        header = Adw.HeaderBar()
-        header.set_show_start_title_buttons(False)
-        self.grid_page.append(header)
+        # Spacer
+        spacer = Gtk.Box()
+        spacer.set_hexpand(True)
+        topbar.append(spacer)
         
-        # Header controls
-        header_controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        # Middle controls
+        mid_topbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        mid_topbar.set_valign(Gtk.Align.CENTER)
+        
+        genre_label = Gtk.Label(label="Genre")
+        genre_label.set_css_classes(['dim-label'])
+        mid_topbar.append(genre_label)
         
         genres = [
             "All", "Action", "Adventure", "Animation", "Biography", "Comedy", 
@@ -517,19 +615,53 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         self.genre_dropdown = Gtk.DropDown.new_from_strings(genres)
         self.genre_dropdown.set_valign(Gtk.Align.CENTER)
         self.genre_dropdown.connect("notify::selected", self.on_genre_changed)
-        header_controls.append(self.genre_dropdown)
+        mid_topbar.append(self.genre_dropdown)
+        
+        sort_label = Gtk.Label(label="Sort by")
+        sort_label.set_css_classes(['dim-label'])
+        mid_topbar.append(sort_label)
         
         self.sort_dropdown = Gtk.DropDown.new_from_strings(["Trending", "Popularity", "Last Added", "Year", "Title", "Rating"])
         self.sort_dropdown.set_valign(Gtk.Align.CENTER)
         self.sort_dropdown.connect("notify::selected", self.on_sort_changed)
-        header_controls.append(self.sort_dropdown)
+        mid_topbar.append(self.sort_dropdown)
         
-        header.pack_start(header_controls)
+        topbar.append(mid_topbar)
+        
+        # Spacer
+        spacer2 = Gtk.Box()
+        spacer2.set_hexpand(True)
+        topbar.append(spacer2)
+        
+        # Right controls
+        right_topbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        right_topbar.set_valign(Gtk.Align.CENTER)
+        right_topbar.set_margin_end(16)
         
         self.search_entry = Gtk.SearchEntry()
         self.search_entry.set_placeholder_text("Search...")
         self.search_entry.connect("search-changed", self.on_search_changed)
-        header.pack_end(self.search_entry)
+        right_topbar.append(self.search_entry)
+        
+        topbar.append(right_topbar)
+        
+        window_controls = Gtk.WindowControls(side=Gtk.PackType.END)
+        topbar.append(window_controls)
+        
+        # Wrap topbar in WindowHandle to make it draggable
+        window_handle = Gtk.WindowHandle()
+        window_handle.set_child(topbar)
+        toolbar_view.add_top_bar(window_handle)
+        
+        # Content Area (Stack)
+        self.stack = Gtk.Stack()
+        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.stack.set_hexpand(True)
+        self.stack.set_vexpand(True)
+        toolbar_view.set_content(self.stack)
+        
+        # Grid Page
+        self.grid_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         
         self.scrolled = Gtk.ScrolledWindow()
         self.scrolled.set_vexpand(True)
@@ -560,6 +692,8 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         self.movies_btn.remove_css_class("selected")
         self.tv_btn.remove_css_class("selected")
         self.anime_btn.remove_css_class("selected")
+        self.fav_btn.remove_css_class("selected")
+        self.watched_btn.remove_css_class("selected")
         btn.add_css_class("selected")
         
         self.current_media_type = media_type
@@ -603,15 +737,20 @@ class NativePopcornWindow(Adw.ApplicationWindow):
             
         self.is_fetching = True
         
-        if page == 1:
-            while child := self.flowbox.get_first_child():
-                self.flowbox.remove(child)
+        def _do_load():
+            if page == 1:
+                while child := self.flowbox.get_first_child():
+                    self.flowbox.remove(child)
+                    
+            def fetch():
+                movies = api.fetch_items(media_type=self.current_media_type, query=self.current_query, genre=self.current_genre, catalog_id=self.current_catalog_id, page=page)
+                GLib.idle_add(self.populate_movies, movies, page)
                 
-        def fetch():
-            movies = api.fetch_items(media_type=self.current_media_type, query=self.current_query, genre=self.current_genre, catalog_id=self.current_catalog_id, page=page)
-            GLib.idle_add(self.populate_movies, movies, page)
+            threading.Thread(target=fetch, daemon=True).start()
+            return False
             
-        threading.Thread(target=fetch, daemon=True).start()
+        # Defer heavy grid clearance/repopulation by 20ms to let GTK draw CSS changes first
+        GLib.timeout_add(150, _do_load)
         
     def populate_movies(self, movies, page):
         self.is_fetching = False

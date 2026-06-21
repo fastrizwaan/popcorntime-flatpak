@@ -20,13 +20,14 @@ class NativePopcornApp(Adw.Application):
         css_provider = Gtk.CssProvider()
         css_data = b"""
         window { background-color: #17181b; }
-        .sidebar { background-color: #111215; }
-        .sidebar-item { padding: 12px 24px; border-radius: 0; margin: 0; transition: all 200ms ease; font-weight: bold; color: rgba(255, 255, 255, 0.6); }
-        .sidebar-item:hover { color: #ffffff; }
-        .sidebar-item.selected { border-left: 4px solid #00e57a; color: #ffffff; background-color: rgba(255,255,255,0.05); }
+        .topbar { background-color: #111215; border-bottom: 1px solid #1a1b1f; padding-top: 6px;padding-bottom: 6px; padding-left: 0px; padding-right: 6px;  }
+        .topbar-item { padding-top: 0px; padding-bottom: 6px; padding-left: 18px; padding-right: 18px; border-radius: 0; margin-top: 6px; margin-bottom: 0px; transition: all 200ms ease; font-weight: bold; color: rgba(255, 255, 255, 0.6); background: transparent; border: none; border-bottom: 3px solid transparent; outline: none; box-shadow: none; }
+        .topbar-item:hover, .topbar-item:focus, .topbar-item:focus-visible { color: #ffffff; background: transparent; outline: none; box-shadow: none; }
+        .topbar-item:active { background: transparent; border-bottom: 3px solid transparent; outline: none; box-shadow: none; }
+        .topbar-item.selected { border-bottom: 3px solid #2f79c3; color: #ffffff; }
         
-        button.suggested-action { background-color: #00e57a; color: #000; font-weight: bold; border: none; }
-        button.suggested-action:hover { background-color: #00ff88; }
+        button.suggested-action { background-color: #25405b; color: #ffffff; font-weight: bold; border: none; }
+        button.suggested-action:hover { background-color: #2e5175; }
         
         .pt-card { background-color: transparent; border-radius: 8px; transition: all 200ms ease; }
         .pt-card:hover { transform: scale(1.05); }

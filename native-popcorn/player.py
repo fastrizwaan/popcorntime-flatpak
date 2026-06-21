@@ -28,18 +28,18 @@ def get_player_cmd():
     
     # Priority 1: Bundled Flatpak MPV
     if os.path.exists("/app/bin/mpv"):
-        return ["/app/bin/mpv"]
+        return ["/app/bin/mpv", "--force-window=immediate"]
         
     # Priority 2 & 3: Native System Players
     if shutil.which("mpv"):
-        return ["mpv"]
+        return ["mpv", "--force-window=immediate"]
     if shutil.which("vlc"):
         return ["vlc"]
         
     # Priority 4 & 5: External Flatpak Players
     if shutil.which("flatpak"):
         if subprocess.run(["flatpak", "info", "io.mpv.Mpv"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
-            return ["flatpak", "run", "io.mpv.Mpv"]
+            return ["flatpak", "run", "io.mpv.Mpv", "--force-window=immediate"]
             
     return ["flatpak", "run", "org.videolan.VLC"]
 
@@ -84,13 +84,15 @@ def play_magnet(magnet_link, player="mpv", progress_callback=None, file_index=No
     def launch(attempt=1):
         global active_process
         try:
+            import gi
+            from gi.repository import GLib
             if progress_callback:
-                progress_callback({"status": f"Initializing stream engine (Attempt {attempt})..."})
+                GLib.idle_add(progress_callback, {"status": f"Initializing stream engine (Attempt {attempt})..."})
                 
             peerflix_js = get_peerflix_bin(progress_callback)
             
             # Start peerflix with --quiet and dynamic port 0
-            cmd = ["node", peerflix_js, magnet_link, "--port", "0", "--path", "/var/tmp/native-popcorn", "--quiet"]
+            cmd = ["node", peerflix_js, magnet_link, "--port", "0", "--hostname", "127.0.0.1", "--path", "/var/tmp/native-popcorn", "--quiet"]
             if file_index is not None:
                 cmd.extend(["--index", str(file_index)])
             
@@ -99,22 +101,24 @@ def play_magnet(magnet_link, player="mpv", progress_callback=None, file_index=No
             active_process = process
             
             server_port = None
+            server_ip = None
             
             # Read peerflix output in the background for debugging and port detection
             def read_output():
-                nonlocal server_port
+                nonlocal server_port, server_ip
                 for line in iter(process.stdout.readline, ''):
                     if line:
                         print(f"[peerflix] {line.strip()}")
                         if "server is listening on" in line and server_port is None:
-                            match = re.search(r"http://[^:]+:(\d+)", line)
+                            match = re.search(r"http://([^:/]+):(\d+)", line)
                             if match:
-                                server_port = int(match.group(1))
+                                server_ip = match.group(1)
+                                server_port = int(match.group(2))
                                 
             threading.Thread(target=read_output, daemon=True).start()
             
             if progress_callback:
-                progress_callback({"status": "Fetching metadata (may take a few minutes)..."})
+                GLib.idle_add(progress_callback, {"status": "Fetching metadata (may take a few minutes)..."})
                 
             # Give peerflix time to initialize the local server and fetch metadata
             import time
@@ -124,11 +128,13 @@ def play_magnet(magnet_link, player="mpv", progress_callback=None, file_index=No
             
             server_up = False
             for i in range(90): # Wait up to 1.5 minutes total per attempt
+                if active_process != process:
+                    return
                 if process.poll() is not None:
                     break
                 if server_port is not None:
                     try:
-                        with socket.create_connection(("127.0.0.1", server_port), timeout=1):
+                        with socket.create_connection((server_ip or "127.0.0.1", server_port), timeout=1):
                             server_up = True
                             break
                     except (ConnectionRefusedError, socket.timeout, OSError):
@@ -142,6 +148,8 @@ def play_magnet(magnet_link, player="mpv", progress_callback=None, file_index=No
                 time.sleep(1)
                     
             if not server_up:
+                if active_process != process:
+                    return
                 process.kill()
                 if attempt < 3:
                     return launch(attempt + 1)
@@ -150,16 +158,18 @@ def play_magnet(magnet_link, player="mpv", progress_callback=None, file_index=No
                 return
             
             if progress_callback:
-                progress_callback({"status": "Launching media player..."})
+                GLib.idle_add(progress_callback, {"status": "Launching media player..."})
                 
             player_cmd = get_player_cmd()
-            player_cmd.append(f"http://127.0.0.1:{server_port}/")
+            if "mpv" in player_cmd[-1]:
+                player_cmd.append("--ytdl=no")
+            player_cmd.append(f"http://{server_ip or '127.0.0.1'}:{server_port}/")
             
             print(f"Executing: {' '.join(player_cmd)}")
             mpv_process = subprocess.Popen(player_cmd)
             
             if progress_callback:
-                progress_callback({"status": "Playing!"})
+                GLib.idle_add(progress_callback, {"status": "Playing!"})
                 
             # Stats polling loop
             import urllib.request
@@ -168,14 +178,14 @@ def play_magnet(magnet_link, player="mpv", progress_callback=None, file_index=No
             def poll_stats():
                 while active_process == process and process.poll() is None and mpv_process.poll() is None:
                     try:
-                        req = urllib.request.Request(f"http://127.0.0.1:{server_port}/.json")
-                        with urllib.request.urlopen(req, timeout=1) as response:
+                        req = urllib.request.Request(f"http://{server_ip or '127.0.0.1'}:{server_port}/.json")
+                        with urllib.request.urlopen(req, timeout=3) as response:
                             stats = json.loads(response.read().decode('utf-8'))
                             stats["status"] = "Downloading"
                             if progress_callback:
-                                GLib.idle_add(lambda s=stats: progress_callback(s))
+                                GLib.idle_add(progress_callback, stats)
                     except Exception as ex:
-                        pass
+                        print(f"[poll_stats] error: {ex}")
                     time.sleep(1)
                     
                 # If MPV closed, stop peerflix automatically, but only if we are still the active process
@@ -189,7 +199,9 @@ def play_magnet(magnet_link, player="mpv", progress_callback=None, file_index=No
         except Exception as e:
             print(f"Error launching player: {e}")
             if progress_callback:
-                progress_callback({"status": f"Error: {e}"})
+                import gi
+                from gi.repository import GLib
+                GLib.idle_add(progress_callback, {"status": f"Error: {e}"})
 
     # Start the launch process in a background thread
     threading.Thread(target=launch, daemon=True).start()

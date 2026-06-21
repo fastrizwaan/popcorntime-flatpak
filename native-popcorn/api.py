@@ -53,8 +53,8 @@ def fetch_items(media_type="movie", query="", genre="", catalog_id="trending", l
         skip_str = f"skip={skip}" if skip > 0 else ""
         
         if query:
+            if page > 1: return []
             extra = f"search={urllib.parse.quote(query)}"
-            if skip_str: extra += f"&{skip_str}"
             url = f"{base_url}/{extra}.json"
         elif genre and genre != "All":
             extra = f"genre={urllib.parse.quote(genre)}"
@@ -203,8 +203,15 @@ def build_magnet(hash_string, title):
     encoded_title = urllib.parse.quote(title)
     trackers = [
         "udp://tracker.opentrackr.org:1337/announce",
-        "udp://tracker.openbittorrent.com:80",
-        "udp://tracker.coppersurfer.tk:6969"
+        "udp://tracker.openbittorrent.com:80/announce",
+        "udp://tracker.torrent.eu.org:451/announce",
+        "udp://exodus.desync.com:6969/announce",
+        "udp://explodie.org:6969/announce",
+        "udp://p4p.arenabg.com:1337/announce",
+        "udp://tracker.leechers-paradise.org:6969/announce",
+        "udp://tracker.internetwarriors.net:1337/announce",
+        "http://tracker.openbittorrent.com:80/announce",
+        "https://tracker.tamersunion.org:443/announce"
     ]
     tracker_str = "&tr=".join([urllib.parse.quote(t) for t in trackers])
     return f"magnet:?xt=urn:btih:{hash_string}&dn={encoded_title}&tr={tracker_str}"
