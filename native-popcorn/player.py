@@ -111,7 +111,7 @@ def play_magnet(magnet_link, player="mpv", progress_callback=None, file_index=No
                             break
                     except (ConnectionRefusedError, socket.timeout, OSError):
                         pass
-                elif i > 25: # If no port/metadata after 25 seconds, it's frozen
+                elif i > 10: # If no port/metadata after 10 seconds, it's frozen
                     print(f"Peerflix seems frozen (Attempt {attempt}), retrying...")
                     process.kill()
                     if attempt < 3:
