@@ -31,49 +31,19 @@
     },
     {
       "name": "native-popcorn",
-      "buildsystem": "simple",
-      "build-commands": [
-        "install -d /app/native-popcorn",
-        "install main.py window.py player.py api.py database.py /app/native-popcorn/",
-        "install native-popcorn /app/bin/",
-        "install mpv /app/bin/"
-      ],
+      "buildsystem": "meson",
       "sources": [
         {
-          "type": "file",
-          "path": "main.py"
-        },
-        {
-          "type": "file",
-          "path": "window.py"
-        },
-        {
-          "type": "file",
-          "path": "player.py"
-        },
-        {
-          "type": "file",
-          "path": "api.py"
-        },
-        {
-          "type": "file",
-          "path": "database.py"
-        },
-        {
-          "type": "script",
-          "dest-filename": "mpv",
-          "commands": [
-            "exec flatpak-spawn --host flatpak run io.mpv.Mpv \"$@\""
-          ]
-        },
-        {
-          "type": "script",
-          "dest-filename": "native-popcorn",
-          "commands": [
-            "export PATH=\"/app/bin:$PATH\"",
-            "exec python3 /app/native-popcorn/main.py \"$@\""
-          ]
+          "type": "dir",
+          "path": "."
         }
+      ],
+      "post-install": [
+        "cat << 'EOF' > /app/bin/mpv",
+        "#!/bin/sh",
+        "exec flatpak-spawn --host flatpak run io.mpv.Mpv \"$@\"",
+        "EOF",
+        "chmod +x /app/bin/mpv"
       ]
     }
   ]

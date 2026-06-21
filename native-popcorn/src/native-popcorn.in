@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import signal
+
+pkgdatadir = '@pkgdatadir@'
+localedir = '@localedir@'
+
+sys.path.insert(1, pkgdatadir)
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+if __name__ == '__main__':
+    from native_popcorn import main
+    sys.exit(main.main(sys.argv))

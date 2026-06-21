@@ -5,7 +5,7 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 from gi.repository import Gtk, Adw, Gio, Gdk
 
-from window import NativePopcornWindow
+from native_popcorn.window import NativePopcornWindow
 
 class NativePopcornApp(Adw.Application):
     def __init__(self):
@@ -48,6 +48,9 @@ class NativePopcornApp(Adw.Application):
             win = NativePopcornWindow(application=self)
         win.present()
 
-if __name__ == '__main__':
+def main(args):
     app = NativePopcornApp()
-    sys.exit(app.run(sys.argv))
+    return app.run(args)
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))
