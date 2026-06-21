@@ -406,7 +406,6 @@ class MovieWidget(Gtk.Box):
         load_image_into_picture(movie.get("medium_cover_image"), self.poster_image, width=130, height=195)
         
         title_label = Gtk.Label(label=movie.get("title", "Unknown"))
-        title_label.set_wrap(True)
         title_label.set_lines(1)
         import gi
         gi.require_version('Pango', '1.0')

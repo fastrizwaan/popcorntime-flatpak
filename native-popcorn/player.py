@@ -59,11 +59,11 @@ def play_magnet(magnet_link, player="mpv", progress_callback=None, file_index=No
     
     print(f"Launching peerflix with dynamic port...")
     
-    def launch():
+    def launch(attempt=1):
         global active_process
         try:
             if progress_callback:
-                progress_callback({"status": "Initializing stream engine..."})
+                progress_callback({"status": f"Initializing stream engine (Attempt {attempt})..."})
                 
             peerflix_js = get_peerflix_bin(progress_callback)
             
@@ -101,11 +101,9 @@ def play_magnet(magnet_link, player="mpv", progress_callback=None, file_index=No
             from gi.repository import GLib
             
             server_up = False
-            for _ in range(180): # Wait up to 3 minutes for metadata (some torrents have few seeders)
+            for i in range(90): # Wait up to 1.5 minutes total per attempt
                 if process.poll() is not None:
-                    if progress_callback:
-                        GLib.idle_add(lambda: progress_callback({"status": "Error: Stream engine exited."}))
-                    return
+                    break
                 if server_port is not None:
                     try:
                         with socket.create_connection(("127.0.0.1", server_port), timeout=1):
@@ -113,9 +111,18 @@ def play_magnet(magnet_link, player="mpv", progress_callback=None, file_index=No
                             break
                     except (ConnectionRefusedError, socket.timeout, OSError):
                         pass
+                elif i > 25: # If no port/metadata after 25 seconds, it's frozen
+                    print(f"Peerflix seems frozen (Attempt {attempt}), retrying...")
+                    process.kill()
+                    if attempt < 3:
+                        return launch(attempt + 1)
+                    break
                 time.sleep(1)
                     
             if not server_up:
+                process.kill()
+                if attempt < 3:
+                    return launch(attempt + 1)
                 if progress_callback:
                     GLib.idle_add(lambda: progress_callback({"status": "Error: Timeout waiting for stream."}))
                 return
