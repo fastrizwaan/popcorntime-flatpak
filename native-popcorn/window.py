@@ -74,7 +74,17 @@ class MovieDetailsPage(Gtk.Overlay):
         self.main_box.set_css_classes(['backdrop-overlay'])
         self.add_overlay(self.main_box)
         
-        # Header bar removed as per user request
+        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        header_box.set_margin_start(16)
+        header_box.set_margin_top(16)
+        
+        back_btn = Gtk.Button(icon_name="go-previous-symbolic")
+        back_btn.set_tooltip_text("Back")
+        back_btn.set_css_classes(['circular', 'flat'])
+        back_btn.connect("clicked", lambda x: on_back())
+        header_box.append(back_btn)
+        
+        self.main_box.append(header_box)
         
         self.content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         self.content_box.set_margin_start(48)
