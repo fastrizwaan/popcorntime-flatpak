@@ -257,9 +257,9 @@ class MovieDetailsPage(Gtk.Overlay):
         self.row2_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         self.row2_box.set_margin_top(16)
         
-        if self.media_type == "series" and details.get("videos"):
+        if self.media_type in ["series", "anime"] and details.get("videos"):
             videos = details.get("videos")
-            seasons = sorted(list(set([v.get("season") for v in videos if v.get("season")])))
+            seasons = sorted(list(set([v.get("season", 1) for v in videos])))
             
             self.season_dropdown = Gtk.DropDown.new_from_strings([f"Season {s}" for s in seasons])
             self.season_dropdown.set_valign(Gtk.Align.CENTER)
@@ -632,7 +632,7 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         
         self.anime_btn = Gtk.Button(label="Anime")
         self.anime_btn.set_css_classes(['topbar-item'])
-        self.anime_btn.connect("clicked", lambda x: self.switch_category("series", "Animation", self.anime_btn))
+        self.anime_btn.connect("clicked", lambda x: self.switch_category("anime", "All", self.anime_btn))
         left_topbar.append(self.anime_btn)
         
         self.fav_btn = Gtk.Button(label="Favorites")
@@ -657,14 +657,10 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         genre_label = Gtk.Label(label="Genre")
         genre_label.set_css_classes(['dim-label'])
         mid_topbar.append(genre_label)
+        self.movie_genres = ["All", "Action", "Animation", "Comedy", "Crime", "Documentary", "Drama", "Family", "Fantasy", "History", "Horror", "Music", "Mystery", "Romance", "Science Fiction", "TV Movie", "Thriller", "War", "Western"]
+        self.anime_genres = ["All"]
         
-        genres = [
-            "All", "Action", "Adventure", "Animation", "Biography", "Comedy", 
-            "Crime", "Documentary", "Drama", "Family", "Fantasy", "History", 
-            "Horror", "Music", "Musical", "Mystery", "Romance", "Sci-Fi", 
-            "Sport", "Thriller", "War", "Western"
-        ]
-        self.genre_dropdown = Gtk.DropDown.new_from_strings(genres)
+        self.genre_dropdown = Gtk.DropDown.new_from_strings(self.movie_genres)
         self.genre_dropdown.set_valign(Gtk.Align.CENTER)
         self.genre_dropdown.connect("notify::selected", self.on_genre_changed)
         mid_topbar.append(self.genre_dropdown)
@@ -673,7 +669,9 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         sort_label.set_css_classes(['dim-label'])
         mid_topbar.append(sort_label)
         
-        self.sort_dropdown = Gtk.DropDown.new_from_strings(["Trending", "Popularity", "Last Added", "Year", "Title", "Rating"])
+        self.standard_sorts = ["Trending", "Popularity", "Last Added", "Year", "Title", "Rating"]
+        self.anime_sorts = ["Trending", "Year", "Title"]
+        self.sort_dropdown = Gtk.DropDown.new_from_strings(self.standard_sorts)
         self.sort_dropdown.set_valign(Gtk.Align.CENTER)
         self.sort_dropdown.connect("notify::selected", self.on_sort_changed)
         mid_topbar.append(self.sort_dropdown)
@@ -748,16 +746,20 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         self.watched_btn.remove_css_class("selected")
         btn.add_css_class("selected")
         
+        # Update dropdown models based on category
         self.current_media_type = media_type
-        self.current_genre = genre
+        self.current_genre = "All"
         self.current_catalog_id = "trending"
-        self.sort_dropdown.set_selected(0)
         
-        # Reset genre dropdown
-        if genre == "Animation":
-            self.genre_dropdown.set_selected(2) # Animation index
+        if media_type == "anime":
+            self.genre_dropdown.set_model(Gtk.StringList.new(self.anime_genres))
+            self.sort_dropdown.set_model(Gtk.StringList.new(self.anime_sorts))
         else:
-            self.genre_dropdown.set_selected(0) # All
+            self.genre_dropdown.set_model(Gtk.StringList.new(self.movie_genres))
+            self.sort_dropdown.set_model(Gtk.StringList.new(self.standard_sorts))
+            
+        self.genre_dropdown.set_selected(0)
+        self.sort_dropdown.set_selected(0)
             
         self.load_movies()
         
@@ -770,8 +772,14 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         
     def on_sort_changed(self, dropdown, *args):
         idx = dropdown.get_selected()
-        sort_map = ["trending", "popularity", "last added", "year", "title", "rating"]
-        if idx != Gtk.INVALID_LIST_POSITION:
+        if idx == Gtk.INVALID_LIST_POSITION: return
+        
+        if self.current_media_type == "anime":
+            sort_map = ["trending", "year", "title"]
+        else:
+            sort_map = ["trending", "popularity", "last added", "year", "title", "rating"]
+            
+        if idx < len(sort_map):
             self.current_catalog_id = sort_map[idx]
         self.load_movies()
         
