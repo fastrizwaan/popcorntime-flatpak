@@ -1,6 +1,7 @@
 import sys
 import threading
 import gi
+import database
 
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
@@ -231,13 +232,15 @@ class MovieDetailsPage(Gtk.Overlay):
         self.row1_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         self.row1_box.set_margin_top(16)
         
-        self.fav_btn = Gtk.Button(label="♡ Add to Favorites")
-        self.fav_btn.set_css_classes(['pill'])
-        self.row1_box.append(self.fav_btn)
+        self.detail_fav_btn = Gtk.Button(label="♥ Remove from Favorites" if database.is_favorite(imdb_id) else "♡ Add to Favorites")
+        self.detail_fav_btn.set_css_classes(['pill'])
+        self.detail_fav_btn.connect("clicked", lambda x: self.toggle_favorite(details))
+        self.row1_box.append(self.detail_fav_btn)
         
-        self.seen_btn = Gtk.Button(label="👁 Not Seen")
-        self.seen_btn.set_css_classes(['pill'])
-        self.row1_box.append(self.seen_btn)
+        self.detail_seen_btn = Gtk.Button(label="👁 Seen" if database.is_watched(imdb_id) else "👁 Not Seen")
+        self.detail_seen_btn.set_css_classes(['pill'])
+        self.detail_seen_btn.connect("clicked", lambda x: self.toggle_watched(details))
+        self.row1_box.append(self.detail_seen_btn)
         
         trailer_btn = Gtk.Button()
         trailer_icon = Gtk.Image.new_from_icon_name("media-playback-start-symbolic")
@@ -597,6 +600,36 @@ class MovieWidget(Gtk.Box):
         self.append(year_label)
 
 class NativePopcornWindow(Adw.ApplicationWindow):
+    def toggle_favorite(self, details):
+        item_id = details.get("id")
+        if database.is_favorite(item_id):
+            database.remove_favorite(item_id)
+            self.detail_fav_btn.set_label("♡ Add to Favorites")
+        else:
+            database.add_favorite({
+                "id": item_id,
+                "title": details.get("title"),
+                "year": details.get("year"),
+                "medium_cover_image": details.get("medium_cover_image"),
+                "type": self.media_type
+            })
+            self.detail_fav_btn.set_label("♥ Remove from Favorites")
+            
+    def toggle_watched(self, details):
+        item_id = details.get("id")
+        if database.is_watched(item_id):
+            database.remove_watched(item_id)
+            self.detail_seen_btn.set_label("👁 Not Seen")
+        else:
+            database.add_watched({
+                "id": item_id,
+                "title": details.get("title"),
+                "year": details.get("year"),
+                "medium_cover_image": details.get("medium_cover_image"),
+                "type": self.media_type
+            })
+            self.detail_seen_btn.set_label("👁 Seen")
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.set_title("Popcorn Time")
@@ -637,10 +670,12 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         
         self.fav_btn = Gtk.Button(label="Favorites")
         self.fav_btn.set_css_classes(['topbar-item'])
+        self.fav_btn.connect("clicked", lambda x: self.switch_category("favorites", "All", self.fav_btn))
         left_topbar.append(self.fav_btn)
         
         self.watched_btn = Gtk.Button(label="Watched")
         self.watched_btn.set_css_classes(['topbar-item'])
+        self.watched_btn.connect("clicked", lambda x: self.switch_category("watched", "All", self.watched_btn))
         left_topbar.append(self.watched_btn)
         
         topbar.append(left_topbar)
@@ -754,9 +789,17 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         if media_type == "anime":
             self.genre_dropdown.set_model(Gtk.StringList.new(self.anime_genres))
             self.sort_dropdown.set_model(Gtk.StringList.new(self.anime_sorts))
+            self.genre_dropdown.set_sensitive(True)
+            self.sort_dropdown.set_sensitive(True)
+        elif media_type in ["favorites", "watched"]:
+            # Disable filters for local lists
+            self.genre_dropdown.set_sensitive(False)
+            self.sort_dropdown.set_sensitive(False)
         else:
             self.genre_dropdown.set_model(Gtk.StringList.new(self.movie_genres))
             self.sort_dropdown.set_model(Gtk.StringList.new(self.standard_sorts))
+            self.genre_dropdown.set_sensitive(True)
+            self.sort_dropdown.set_sensitive(True)
             
         self.genre_dropdown.set_selected(0)
         self.sort_dropdown.set_selected(0)
@@ -803,7 +846,12 @@ class NativePopcornWindow(Adw.ApplicationWindow):
                     self.flowbox.remove(child)
                     
             def fetch():
-                movies = api.fetch_items(media_type=self.current_media_type, query=self.current_query, genre=self.current_genre, catalog_id=self.current_catalog_id, page=page)
+                if self.current_media_type == "favorites":
+                    movies = database.get_favorites() if page == 1 else []
+                elif self.current_media_type == "watched":
+                    movies = database.get_watched() if page == 1 else []
+                else:
+                    movies = api.fetch_items(media_type=self.current_media_type, query=self.current_query, genre=self.current_genre, catalog_id=self.current_catalog_id, page=page)
                 GLib.idle_add(self.populate_movies, movies, page)
                 
             threading.Thread(target=fetch, daemon=True).start()
