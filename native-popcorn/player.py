@@ -21,6 +21,28 @@ def stop_player():
                 pass
         active_process = None
 
+def get_player_cmd():
+    import shutil
+    import subprocess
+    import os
+    
+    # Priority 1: Bundled Flatpak MPV
+    if os.path.exists("/app/bin/mpv"):
+        return ["/app/bin/mpv"]
+        
+    # Priority 2 & 3: Native System Players
+    if shutil.which("mpv"):
+        return ["mpv"]
+    if shutil.which("vlc"):
+        return ["vlc"]
+        
+    # Priority 4 & 5: External Flatpak Players
+    if shutil.which("flatpak"):
+        if subprocess.run(["flatpak", "info", "io.mpv.Mpv"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+            return ["flatpak", "run", "io.mpv.Mpv"]
+            
+    return ["flatpak", "run", "org.videolan.VLC"]
+
 def get_peerflix_bin(progress_callback=None):
     data_dir = os.environ.get('XDG_DATA_HOME', os.path.expanduser("~/.local/share"))
     peerflix_dir = os.path.join(data_dir, "peerflix_engine")
@@ -128,21 +150,13 @@ def play_magnet(magnet_link, player="mpv", progress_callback=None, file_index=No
                 return
             
             if progress_callback:
-                progress_callback({"status": "Launching MPV player..."})
+                progress_callback({"status": "Launching media player..."})
                 
-            import shutil
+            player_cmd = get_player_cmd()
+            player_cmd.append(f"http://127.0.0.1:{server_port}/")
             
-            # Launch MPV manually. Handle both in-flatpak and out-of-flatpak scenarios
-            if os.path.exists("/app/bin/mpv"):
-                mpv_cmd = ["/app/bin/mpv"]
-            elif shutil.which("mpv"):
-                mpv_cmd = ["mpv"]
-            else:
-                mpv_cmd = ["flatpak", "run", "io.mpv.Mpv"]
-                
-            mpv_cmd.append(f"http://127.0.0.1:{server_port}/")
-            print(f"Executing: {' '.join(mpv_cmd)}")
-            mpv_process = subprocess.Popen(mpv_cmd)
+            print(f"Executing: {' '.join(player_cmd)}")
+            mpv_process = subprocess.Popen(player_cmd)
             
             if progress_callback:
                 progress_callback({"status": "Playing!"})
@@ -197,16 +211,10 @@ def play_trailer(youtube_id, progress_callback=None):
                 from gi.repository import GLib
                 GLib.idle_add(lambda: progress_callback({"status": "Resolving YouTube link..."}))
                 
-            import shutil
-            if os.path.exists("/app/bin/mpv"):
-                mpv_cmd = ["/app/bin/mpv"]
-            elif shutil.which("mpv"):
-                mpv_cmd = ["mpv"]
-            else:
-                mpv_cmd = ["flatpak", "run", "io.mpv.Mpv"]
-                
-            mpv_cmd.append(url)
-            process = subprocess.Popen(mpv_cmd)
+            player_cmd = get_player_cmd()
+            player_cmd.append(url)
+            
+            process = subprocess.Popen(player_cmd)
             active_process = process
             
             if progress_callback:
