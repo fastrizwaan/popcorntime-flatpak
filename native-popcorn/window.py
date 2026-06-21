@@ -777,6 +777,13 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         self.load_movies()
         
     def switch_category(self, media_type, genre, btn):
+        if hasattr(self, 'current_media_type') and self.current_media_type == media_type:
+            # If we are already on this tab, just return to grid and restore scroll (no reload)
+            self.stack.set_visible_child_name("grid")
+            if hasattr(self, 'saved_scroll_pos'):
+                GLib.idle_add(lambda: self.scrolled.get_vadjustment().set_value(self.saved_scroll_pos) or False)
+            return
+
         self.movies_btn.remove_css_class("selected")
         self.tv_btn.remove_css_class("selected")
         self.anime_btn.remove_css_class("selected")
@@ -891,6 +898,7 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         self.load_movies(query=entry.get_text(), page=1)
         
     def show_movie_details(self, movie):
+        self.saved_scroll_pos = self.scrolled.get_vadjustment().get_value()
         details_page = MovieDetailsPage(movie, self.hide_movie_details)
         if self.stack.get_child_by_name("details"):
             self.stack.remove(self.stack.get_child_by_name("details"))
@@ -900,6 +908,8 @@ class NativePopcornWindow(Adw.ApplicationWindow):
     def hide_movie_details(self):
         player.stop_player() # Stop if they go back
         self.stack.set_visible_child_name("grid")
+        if hasattr(self, 'saved_scroll_pos'):
+            GLib.idle_add(lambda: self.scrolled.get_vadjustment().set_value(self.saved_scroll_pos) or False)
 
     def on_close_request(self, *args):
         player.stop_player()
