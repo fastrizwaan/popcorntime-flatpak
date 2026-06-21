@@ -164,10 +164,20 @@ class MovieDetailsPage(Gtk.Overlay):
         self.inner_stack.add_named(self.dl_box, "download")
         
     def on_cancel_download(self, btn):
+        print(f"DEBUG: on_cancel_download called. Current selected_torrent is: {getattr(self, 'selected_torrent', None)}")
         player.stop_player()
         self.inner_stack.set_visible_child_name("details")
         self.watch_btn.set_sensitive(True)
         self.progress_label.set_text("")
+        
+        # GTK4 DropDown bug workaround: restore selection state after Stack unmap
+        if hasattr(self, 'file_dropdown') and hasattr(self, 'current_t_list') and hasattr(self, 'selected_torrent'):
+            try:
+                idx = self.current_t_list.index(self.selected_torrent)
+                print(f"DEBUG: Restoring file_dropdown to idx {idx}")
+                self.file_dropdown.set_selected(idx)
+            except ValueError:
+                print("DEBUG: ValueError when trying to restore file_dropdown selection")
         
     def load_details_async(self):
         def fetch():
@@ -263,6 +273,8 @@ class MovieDetailsPage(Gtk.Overlay):
                 idx = dropdown.get_selected()
                 if idx == Gtk.INVALID_LIST_POSITION: return
                 s = seasons[idx]
+                if getattr(self, 'selected_season', None) == s:
+                    return
                 self.selected_season = s
                 eps = [v for v in videos if v.get("season") == s]
                 eps.sort(key=lambda x: x.get("episode", 0))
@@ -276,7 +288,10 @@ class MovieDetailsPage(Gtk.Overlay):
             def on_episode_changed(dropdown, *args):
                 idx = dropdown.get_selected()
                 if idx == Gtk.INVALID_LIST_POSITION: return
-                self.selected_episode = self.current_episodes[idx].get("episode")
+                ep = self.current_episodes[idx].get("episode")
+                if getattr(self, 'selected_episode', None) == ep:
+                    return
+                self.selected_episode = ep
                 self.fetch_torrents_async()
                 
             self.episode_dropdown.connect("notify::selected", on_episode_changed)
@@ -297,8 +312,13 @@ class MovieDetailsPage(Gtk.Overlay):
         
         def on_dropdown_changed(dropdown, pspec):
             idx = dropdown.get_selected()
+            print(f"DEBUG: on_dropdown_changed fired with idx {idx}")
             if hasattr(self, 'current_t_list') and idx != Gtk.INVALID_LIST_POSITION and idx < len(self.current_t_list):
-                self.selected_torrent = self.current_t_list[idx]
+                new_torrent = self.current_t_list[idx]
+                if getattr(self, 'selected_torrent', None) == new_torrent:
+                    return
+                self.selected_torrent = new_torrent
+                print(f"DEBUG: selected_torrent updated to {new_torrent}")
                 
         self.file_dropdown.connect("notify::selected", on_dropdown_changed)
         self.row3_box.append(self.file_dropdown)
@@ -405,6 +425,11 @@ class MovieDetailsPage(Gtk.Overlay):
             on_quality_btn_clicked(first_btn, first_t_list)
             
     def on_download_clicked(self, btn):
+        if hasattr(self, 'file_dropdown') and hasattr(self, 'current_t_list') and self.current_t_list:
+            idx = self.file_dropdown.get_selected()
+            if idx != Gtk.INVALID_LIST_POSITION and idx < len(self.current_t_list):
+                self.selected_torrent = self.current_t_list[idx]
+                
         if not hasattr(self, 'selected_torrent') or not self.selected_torrent:
             return
         magnet = self.selected_torrent.get("url") or self.selected_torrent.get("magnet")
@@ -415,15 +440,42 @@ class MovieDetailsPage(Gtk.Overlay):
             subprocess.Popen(['xdg-open', magnet])
         
     def on_watch_clicked(self, btn):
+        print(f"DEBUG: on_watch_clicked. file_dropdown.get_selected() = {self.file_dropdown.get_selected() if hasattr(self, 'file_dropdown') else 'N/A'}")
+        if hasattr(self, 'file_dropdown') and hasattr(self, 'current_t_list') and self.current_t_list:
+            idx = self.file_dropdown.get_selected()
+            if idx != Gtk.INVALID_LIST_POSITION and idx < len(self.current_t_list):
+                self.selected_torrent = self.current_t_list[idx]
+                print(f"DEBUG: Force synced selected_torrent in on_watch_clicked to {self.selected_torrent}")
+                
         if not hasattr(self, 'selected_torrent') or not self.selected_torrent:
+            print("DEBUG: Watch it now failed! selected_torrent is None or missing.")
             if hasattr(self, 'progress_label') and self.progress_label:
                 self.progress_label.set_text("No streams available.")
             return
             
+        import urllib.parse
         torrent = self.selected_torrent
         magnet = torrent.get("url") or torrent.get("magnet")
         if not magnet and torrent.get("hash"):
             magnet = api.build_magnet(torrent.get("hash"), self.movie_stub.get("title", ""))
+            
+        if magnet and magnet.startswith("magnet:?"):
+            trackers = [
+                "udp://tracker.opentrackr.org:1337/announce",
+                "udp://tracker.openbittorrent.com:80/announce",
+                "udp://tracker.torrent.eu.org:451/announce",
+                "udp://exodus.desync.com:6969/announce",
+                "udp://explodie.org:6969/announce",
+                "udp://p4p.arenabg.com:1337/announce",
+                "udp://tracker.internetwarriors.net:1337/announce",
+                "udp://tracker.cyberia.is:6969/announce",
+                "http://tracker.openbittorrent.com:80/announce",
+                "udp://open.stealth.si:80/announce"
+            ]
+            for tr in trackers:
+                encoded_tr = urllib.parse.quote(tr, safe="")
+                if encoded_tr not in magnet:
+                    magnet += f"&tr={encoded_tr}"
         
         self.inner_stack.set_visible_child_name("download")
         self.watch_btn.set_sensitive(False)

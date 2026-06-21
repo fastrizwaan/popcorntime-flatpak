@@ -13,7 +13,7 @@ def stop_player():
         print("Stopping background peerflix server...")
         try:
             active_process.terminate()
-            active_process.wait(timeout=2)
+            active_process.wait(timeout=5)
         except Exception:
             try:
                 active_process.kill()
@@ -108,9 +108,17 @@ def play_magnet(magnet_link, player="mpv", progress_callback=None, file_index=No
                 nonlocal server_port, server_ip
                 for line in iter(process.stdout.readline, ''):
                     if line:
-                        print(f"[peerflix] {line.strip()}")
-                        if "server is listening on" in line and server_port is None:
-                            match = re.search(r"http://([^:/]+):(\d+)", line)
+                        line_str = line.strip()
+                        # Strip ANSI color codes from node output
+                        import re
+                        clean_line = re.sub(r'\x1b\[[0-9;]*m', '', line_str)
+                        
+                        print(f"[peerflix] {clean_line}")
+                        if "Verifying downloaded" in clean_line:
+                            if progress_callback:
+                                GLib.idle_add(lambda l=clean_line: progress_callback({"status": l}))
+                        if "server is listening on" in clean_line and server_port is None:
+                            match = re.search(r"http://([^:/]+):(\d+)", clean_line)
                             if match:
                                 server_ip = match.group(1)
                                 server_port = int(match.group(2))
@@ -139,7 +147,7 @@ def play_magnet(magnet_link, player="mpv", progress_callback=None, file_index=No
                             break
                     except (ConnectionRefusedError, socket.timeout, OSError):
                         pass
-                elif i > 10: # If no port/metadata after 10 seconds, it's frozen
+                elif i > 45: # If no port/metadata after 45 seconds, it's frozen
                     print(f"Peerflix seems frozen (Attempt {attempt}), retrying...")
                     process.kill()
                     if attempt < 3:
