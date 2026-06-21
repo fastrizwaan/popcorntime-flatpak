@@ -74,15 +74,7 @@ class MovieDetailsPage(Gtk.Overlay):
         self.main_box.set_css_classes(['backdrop-overlay'])
         self.add_overlay(self.main_box)
         
-        header = Adw.HeaderBar()
-        header.set_show_end_title_buttons(False)
-        header.set_show_start_title_buttons(False)
-        close_btn = Gtk.Button(icon_name="window-close-symbolic")
-        close_btn.set_css_classes(['circular', 'flat'])
-        close_btn.connect("clicked", lambda x: on_back())
-        header.pack_end(close_btn)
-        header.add_css_class("flat")
-        self.main_box.append(header)
+        # Header bar removed as per user request
         
         self.content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         self.content_box.set_margin_start(48)
@@ -781,6 +773,9 @@ class NativePopcornWindow(Adw.ApplicationWindow):
         self.fav_btn.remove_css_class("selected")
         self.watched_btn.remove_css_class("selected")
         btn.add_css_class("selected")
+        
+        # Ensure we switch back to the grid view when a tab is clicked
+        self.stack.set_visible_child_name("grid")
         
         # Update dropdown models based on category
         self.current_media_type = media_type
