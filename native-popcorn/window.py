@@ -189,6 +189,36 @@ class MovieDetailsPage(Gtk.Overlay):
             GLib.idle_add(self.build_ui, details, torrents)
         threading.Thread(target=fetch, daemon=True).start()
         
+    def toggle_favorite(self, details):
+        item_id = details.get("id")
+        if database.is_favorite(item_id):
+            database.remove_favorite(item_id)
+            self.detail_fav_btn.set_label("♡ Add to Favorites")
+        else:
+            database.add_favorite({
+                "id": item_id,
+                "title": details.get("title"),
+                "year": details.get("year"),
+                "medium_cover_image": details.get("medium_cover_image"),
+                "type": self.media_type
+            })
+            self.detail_fav_btn.set_label("♥ Remove from Favorites")
+            
+    def toggle_watched(self, details):
+        item_id = details.get("id")
+        if database.is_watched(item_id):
+            database.remove_watched(item_id)
+            self.detail_seen_btn.set_label("👁 Not Seen")
+        else:
+            database.add_watched({
+                "id": item_id,
+                "title": details.get("title"),
+                "year": details.get("year"),
+                "medium_cover_image": details.get("medium_cover_image"),
+                "type": self.media_type
+            })
+            self.detail_seen_btn.set_label("👁 Seen")
+        
     def build_ui(self, details, torrents):
         self.content_box.remove(self.spinner)
         if not details:
@@ -232,12 +262,13 @@ class MovieDetailsPage(Gtk.Overlay):
         self.row1_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         self.row1_box.set_margin_top(16)
         
-        self.detail_fav_btn = Gtk.Button(label="♥ Remove from Favorites" if database.is_favorite(imdb_id) else "♡ Add to Favorites")
+        item_id = details.get("id")
+        self.detail_fav_btn = Gtk.Button(label="♥ Remove from Favorites" if database.is_favorite(item_id) else "♡ Add to Favorites")
         self.detail_fav_btn.set_css_classes(['pill'])
         self.detail_fav_btn.connect("clicked", lambda x: self.toggle_favorite(details))
         self.row1_box.append(self.detail_fav_btn)
         
-        self.detail_seen_btn = Gtk.Button(label="👁 Seen" if database.is_watched(imdb_id) else "👁 Not Seen")
+        self.detail_seen_btn = Gtk.Button(label="👁 Seen" if database.is_watched(item_id) else "👁 Not Seen")
         self.detail_seen_btn.set_css_classes(['pill'])
         self.detail_seen_btn.connect("clicked", lambda x: self.toggle_watched(details))
         self.row1_box.append(self.detail_seen_btn)
@@ -600,36 +631,6 @@ class MovieWidget(Gtk.Box):
         self.append(year_label)
 
 class NativePopcornWindow(Adw.ApplicationWindow):
-    def toggle_favorite(self, details):
-        item_id = details.get("id")
-        if database.is_favorite(item_id):
-            database.remove_favorite(item_id)
-            self.detail_fav_btn.set_label("♡ Add to Favorites")
-        else:
-            database.add_favorite({
-                "id": item_id,
-                "title": details.get("title"),
-                "year": details.get("year"),
-                "medium_cover_image": details.get("medium_cover_image"),
-                "type": self.media_type
-            })
-            self.detail_fav_btn.set_label("♥ Remove from Favorites")
-            
-    def toggle_watched(self, details):
-        item_id = details.get("id")
-        if database.is_watched(item_id):
-            database.remove_watched(item_id)
-            self.detail_seen_btn.set_label("👁 Not Seen")
-        else:
-            database.add_watched({
-                "id": item_id,
-                "title": details.get("title"),
-                "year": details.get("year"),
-                "medium_cover_image": details.get("medium_cover_image"),
-                "type": self.media_type
-            })
-            self.detail_seen_btn.set_label("👁 Seen")
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.set_title("Popcorn Time")
