@@ -1,16 +1,6 @@
-# PopcornTime-flatpak
-PopcornTime Flatpak package (unoffical) version: 0.51 with freedesktop 25.08
-
-1. MPV bundled: fixes Trailer and unsupported codecs
-2. Fixed seasons not populating.
-3. Added another torrent provider
-
-![Screenshot](https://github.com/fastrizwaan/popcorntime-flatpak/releases/download/0.51/Screenshot.From.2026-06-07.12-05-52.png)
 ## Install
 
-[**Download and open with GNOME Software**](https://github.com/fastrizwaan/popcorntime-flatpak/releases/download/0.51/org.popcorntime.PopcornTime.flatpak)
-
-Or manually via CLI (copy and paste in a terminal):
+manually via CLI (copy and paste in a terminal):
 
 ```bash
 flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
