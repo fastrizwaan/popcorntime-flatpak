@@ -181,18 +181,53 @@ def play_magnet(magnet_link, player="mpv", progress_callback=None, file_index=No
     threading.Thread(target=launch, daemon=True).start()
     return None
 
-def play_trailer(youtube_id):
+def play_trailer(youtube_id, progress_callback=None):
     """Launch mpv to play the trailer."""
     global active_process
     stop_player()
     
     print(f"Playing trailer: {youtube_id}")
     url = f"https://www.youtube.com/watch?v={youtube_id}"
-    try:
-        cmd = ["mpv", url]
-        process = subprocess.Popen(cmd)
-        active_process = process
-        return process
-    except Exception as e:
-        print(f"Error launching trailer: {e}")
-        return None
+    
+    def launch():
+        global active_process
+        try:
+            if progress_callback:
+                import gi
+                from gi.repository import GLib
+                GLib.idle_add(lambda: progress_callback({"status": "Resolving YouTube link..."}))
+                
+            import shutil
+            if os.path.exists("/app/bin/mpv"):
+                mpv_cmd = ["/app/bin/mpv"]
+            elif shutil.which("mpv"):
+                mpv_cmd = ["mpv"]
+            else:
+                mpv_cmd = ["flatpak", "run", "io.mpv.Mpv"]
+                
+            mpv_cmd.append(url)
+            process = subprocess.Popen(mpv_cmd)
+            active_process = process
+            
+            if progress_callback:
+                GLib.idle_add(lambda: progress_callback({"status": "Playing Trailer!"}))
+                
+            def poll_stats():
+                import time
+                while active_process == process and process.poll() is None:
+                    time.sleep(1)
+                
+                if active_process == process:
+                    if progress_callback:
+                        GLib.idle_add(lambda: progress_callback({"status": "Player closed.", "closed": True}))
+                        
+            threading.Thread(target=poll_stats, daemon=True).start()
+            
+        except Exception as e:
+            print(f"Error launching trailer: {e}")
+            if progress_callback:
+                import gi
+                from gi.repository import GLib
+                GLib.idle_add(lambda: progress_callback({"status": f"Error: {e}", "closed": True}))
+                
+    threading.Thread(target=launch, daemon=True).start()

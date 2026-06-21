@@ -272,7 +272,7 @@ class MovieDetailsPage(Gtk.Overlay):
         trailer_box.append(Gtk.Label(label="Trailer"))
         trailer_btn.set_child(trailer_box)
         trailer_btn.set_valign(Gtk.Align.CENTER)
-        trailer_btn.connect("clicked", lambda x: player.play_trailer(details.get("trailer")))
+        trailer_btn.connect("clicked", lambda x: self.on_trailer_clicked(details.get("trailer")))
         if not details.get("trailer"): trailer_btn.set_sensitive(False)
         self.actions_hbox.append(trailer_btn)
         
@@ -375,6 +375,32 @@ class MovieDetailsPage(Gtk.Overlay):
             
         file_index = torrent.get("file_index")
         player.play_magnet(magnet, "mpv", progress_callback=progress_cb, file_index=file_index)
+        
+    def on_trailer_clicked(self, trailer_id):
+        self.inner_stack.set_visible_child_name("download")
+        self.watch_btn.set_sensitive(False)
+        self.progress_label.set_text("")
+        self.dl_status.set_text("Loading Trailer via YouTube...")
+        self.dl_progress.set_fraction(0.0)
+        self.dl_percent.set_text("")
+        self.dl_speed.set_text("")
+        self.dl_peers.set_text("")
+        
+        title_str = self.movie_stub.get("title", "") + " (Trailer)"
+        self.dl_title.set_text(title_str)
+        
+        def progress_cb(status_data):
+            if type(status_data) == dict:
+                if status_data.get("closed"):
+                    self.on_cancel_download(None)
+                    return
+                if status_data.get("status"):
+                    self.dl_status.set_text(status_data["status"])
+            elif type(status_data) == str:
+                self.dl_status.set_text(status_data)
+            return False
+            
+        player.play_trailer(trailer_id, progress_cb)
 
 class MovieWidget(Gtk.Box):
     def __init__(self, movie, on_card_clicked):
