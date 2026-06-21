@@ -1,7 +1,7 @@
 import sys
 import threading
 import gi
-import database
+from . import database
 
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
@@ -9,9 +9,8 @@ from gi.repository import Gtk, Adw, GLib, Gdk, GdkPixbuf
 import urllib.request
 import os
 import hashlib
-
-import api
-import player
+from . import api
+from . import player
 
 cache_dir_base = os.environ.get('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
 IMAGE_CACHE_DIR = os.path.join(cache_dir_base, 'native-popcorn', 'images')
@@ -635,7 +634,7 @@ class MovieWidget(Gtk.Box):
 class NativePopcornWindow(Adw.ApplicationWindow):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.set_title("Popcorn Time")
+        self.set_title("Native Popcorn")
         self.set_default_size(1100, 800)
         self.connect("close-request", self.on_close_request)
         

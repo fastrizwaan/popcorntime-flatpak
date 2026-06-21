@@ -39,10 +39,8 @@
         }
       ],
       "post-install": [
-        "cat << 'EOF' > /app/bin/mpv",
-        "#!/bin/sh",
-        "exec flatpak-spawn --host flatpak run io.mpv.Mpv \"$@\"",
-        "EOF",
+        "echo '#!/bin/sh' > /app/bin/mpv",
+        "echo 'exec flatpak-spawn --host flatpak run io.mpv.Mpv \"$@\"' >> /app/bin/mpv",
         "chmod +x /app/bin/mpv"
       ]
     }
